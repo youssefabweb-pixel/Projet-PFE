@@ -1,0 +1,63 @@
+<div class="auth-page">
+  <div class="auth-page__bg" aria-hidden="true"></div>
+  <div class="auth-page__orb auth-page__orb--1" aria-hidden="true"></div>
+  <div class="auth-page__orb auth-page__orb--2" aria-hidden="true"></div>
+
+  <main class="auth-card" aria-labelledby="login-title">
+    <div class="auth-card__accent" aria-hidden="true"></div>
+
+    <header class="auth-card__head">
+      <div class="auth-card__logo-wrap">
+        <img
+          class="auth-card__logo"
+          src="assets/brand/logo-wifak.jpg"
+          alt="WIFAK BANK — بنك الوفاق"
+          width="220"
+          height="72"
+        />
+      </div>
+      <p class="auth-card__tagline font-arabic" lang="ar" dir="rtl">بنك الوفاق</p>
+      <h1 id="login-title">Connexion</h1>
+      <p class="auth-card__lede">Accédez à l’espace sécurisé de gestion de projets</p>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" class="auth-form" novalidate>
+      <label class="auth-field">
+        <span class="auth-field__label">Identifiant</span>
+        <span class="auth-field__hint">Nom d’utilisateur ou adresse e-mail</span>
+        <input
+          class="wb-input auth-field__input"
+          formControlName="usernameOrEmail"
+          type="text"
+          autocomplete="username"
+          [attr.aria-invalid]="form.controls.usernameOrEmail.invalid && form.controls.usernameOrEmail.touched"
+        />
+      </label>
+
+      <label class="auth-field">
+        <span class="auth-field__label">Mot de passe</span>
+        <input
+          class="wb-input auth-field__input"
+          formControlName="password"
+          type="password"
+          autocomplete="current-password"
+          [attr.aria-invalid]="form.controls.password.invalid && form.controls.password.touched"
+        />
+      </label>
+
+      @if (form.touched && form.invalid) {
+        <p class="auth-form__hint" role="status">Veuillez renseigner tous les champs obligatoires.</p>
+      }
+
+      <button type="submit" class="btn btn--primary auth-submit" [disabled]="loading" [attr.aria-busy]="loading">
+        {{ loading ? 'Connexion en cours…' : 'Se connecter' }}
+      </button>
+    </form>
+
+    <footer class="auth-card__foot">
+      <span class="auth-card__brand-line">WIFAK BANK</span>
+      <span class="auth-card__sep" aria-hidden="true">·</span>
+      <span class="font-arabic" lang="ar" dir="rtl">الوفاق</span>
+    </footer>
+  </main>
+</div>

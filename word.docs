@@ -1,0 +1,461 @@
+# Système de Gestion des Projets Bancaires
+
+Documentation de **cahier des charges** et de **conception** (UML).  
+Les diagrammes sont fournis en **code PlantUML** (pas d’images embarquées) pour un dossier reproductible et versionnable.
+
+---
+
+## Table des matières
+
+1. [Objectifs du projet et du rendu](#objectifs-du-projet-et-du-rendu)
+2. [Structure du cahier des charges](#structure-du-cahier-des-charges)
+3. [Cas d’utilisation (PlantUML)](#cas-dutilisation-plantuml)
+4. [Diagramme de classes (PlantUML)](#diagramme-de-classes-plantuml)
+5. [Diagrammes de séquence (PlantUML)](#diagrammes-de-séquence-plantuml)
+6. [Diagramme d’activité — workflow (PlantUML)](#diagramme-dactivité--workflow-plantuml)
+7. [Générer les images à partir du code](#générer-les-images-à-partir-du-code)
+8. [Rôles dans le code applicatif](#rôles-dans-le-code-applicatif)
+
+---
+
+## Objectifs du projet et du rendu
+
+### Objectif global
+
+Produire un dossier professionnel composé d’un **cahier des charges** et d’un **dossier de conception** pour un système d’appui à la conduite de projets en contexte bancaire : phases, documents, validations et enchaînement jusqu’au déploiement (Go Live).
+
+### Objectifs du cahier des charges
+
+- Définir le **périmètre** (inclus / exclu) et le **contexte** (acteurs externes, interfaces avec d’autres systèmes).
+- Identifier les **acteurs** et leurs responsabilités : Bureau MOA, Équipe métier, Manager, Équipe développement.
+- Formuler les **besoins fonctionnels** avec identifiant, priorité, acteur principal et **critères d’acceptation** testables.
+- Préciser les **besoins non fonctionnels** : sécurité (authentification, contrôle d’accès par rôle), traçabilité des validations, performances, disponibilité, sauvegardes, conformité si données personnelles.
+- Décrire les **règles de gestion** (enchaînement des validations, documents obligatoires par phase) et le **workflow métier** en cohérence avec le diagramme d’activité.
+
+### Objectifs du dossier de conception
+
+- **Cas d’utilisation** : un diagramme par acteur principal, regroupements (packages) par domaine fonctionnel, relations `<<include>>` et `<<extend>>` conformes à l’analyse.
+- **Diagramme de classes** : modèle métier (projet, étape, document, validation, utilisateur, tâches) avec associations, multiplicités et énumérations.
+- **Diagrammes de séquence** : scénarios critiques (validation d’étape stratégique, dépôt de document, gestion des utilisateurs).
+- **Diagramme d’activité** : workflow de référence du besoin au Go Live, avec décisions et boucles de correction.
+
+### Critères de qualité
+
+- **Cohérence terminologique** : mêmes intitulés dans le texte du cahier des charges, les cas d’utilisation, les activités et les classes.
+- **Traçabilité** : chaque besoin majeur est relié à au moins un cas d’utilisation et, le cas échéant, à une séquence ou à un fragment du workflow.
+- **Sources ouvertes** : le code PlantUML constitue la référence des diagrammes ; la génération d’images (PNG, SVG) est optionnelle mais recommandée pour les présentations.
+
+### Traçabilité (rappel)
+
+| Niveau | Exemple de lien |
+|--------|------------------|
+| Besoin fonctionnel | BF-xxx décrit une capacité utilisateur |
+| Cas d’utilisation | UC correspondant sur le diagramme par acteur |
+| Comportement dynamique | Séquence ou activité qui détaille le scénario principal |
+| Données | Classes et attributs du modèle métier |
+
+---
+
+## Structure du cahier des charges
+
+| Section | Contenu attendu |
+|---------|-----------------|
+| Introduction | Problématique, objectifs business, périmètre in / out |
+| Contexte | Organigramme d’acteurs, SI environnant, interfaces |
+| Acteurs et rôles | Tableau : acteur, description, droits synthétiques |
+| Besoins fonctionnels | ID, titre, description, acteur, priorité, critères d’acceptation |
+| Besoins non fonctionnels | Sécurité, performance, disponibilité, logs, sauvegarde |
+| Règles de gestion | Validations, statuts, documents requis par étape |
+| Workflow | Description narrative alignée sur le diagramme d’activité |
+| Planning et glossaire | Jalons, définitions (MOA, recette, UAT, etc.) |
+
+---
+
+## Cas d’utilisation (PlantUML)
+
+### Bureau MOA
+
+```plantuml
+@startuml
+left to right direction
+title Système de Gestion des Projets Bancaires — Bureau MOA
+
+actor "Bureau MOA" as MOA
+
+rectangle "Système de Gestion des Projets Bancaires" {
+  rectangle "Phase de Recette" {
+    (Rédiger mode opératoire) as UC_MO
+    (Rédiger cahier de recette) as UC_CR
+    (Effectuer tests MOA) as UC_TM
+  }
+  rectangle "Gestion Projet" {
+    (Créer projet) as UC_CP
+    (Consulter projet) as UC_VP
+  }
+  rectangle "Analyse Fonctionnelle" {
+    (Rédiger spécifications fonctionnelles) as UC_SF
+    (Déposer document) as UC_DD
+  }
+  (Valider étape) as UC_VE
+}
+
+MOA --> UC_MO
+MOA --> UC_CR
+MOA --> UC_TM
+MOA --> UC_VE
+MOA --> UC_CP
+MOA --> UC_VP
+MOA --> UC_SF
+MOA --> UC_DD
+
+UC_MO ..> UC_CR : <<extend>>
+UC_CR ..> UC_TM : <<extend>>
+@enduml
+```
+
+### Équipe métier
+
+```plantuml
+@startuml
+left to right direction
+title Système de Gestion des Projets Bancaires — Équipe Métier
+
+actor "Équipe Métier" as EM
+
+rectangle "Système de Gestion des Projets Bancaires" {
+  rectangle "Phase de Recette" {
+    (Effectuer tests métier) as UC_TM
+  }
+  rectangle "Expression du Besoin" {
+    (Valider besoins) as UC_VB
+    (Rédiger fiche besoins) as UC_FB
+  }
+  (Consulter projet) as UC_CP
+  (Consulter documents) as UC_CD
+  (Valider étape) as UC_VE
+}
+
+EM --> UC_TM
+EM --> UC_VB
+EM --> UC_FB
+EM --> UC_CP
+EM --> UC_CD
+EM --> UC_VE
+
+UC_TM ..> UC_VB : <<extend>>
+UC_VB ..> UC_FB : <<include>>
+@enduml
+```
+
+### Manager
+
+```plantuml
+@startuml
+left to right direction
+title Système de Gestion des Projets Bancaires — Manager
+
+actor Manager as M
+
+rectangle "Système de Gestion des Projets Bancaires" {
+  rectangle "Gestion des Accès" {
+    (Gérer utilisateurs) as UC_GU
+    (Assigner rôle) as UC_AR
+    (Activer / Désactiver utilisateur) as UC_AD
+    (Modifier utilisateur) as UC_MU
+    (Créer utilisateur) as UC_CU
+  }
+  rectangle "Pilotage & Décision" {
+    (Consulter projet) as UC_CP
+    (Valider étape stratégique) as UC_VS
+    (Consulter Dashboard BI) as UC_BI
+    (Consulter Prédictions IA) as UC_IA
+  }
+}
+
+M --> UC_GU
+UC_GU ..> UC_AR : <<include>>
+UC_GU ..> UC_AD : <<include>>
+UC_GU ..> UC_MU : <<include>>
+UC_GU ..> UC_CU : <<include>>
+
+M --> UC_CP
+M --> UC_VS
+M --> UC_BI
+M --> UC_IA
+@enduml
+```
+
+### Équipe développement
+
+```plantuml
+@startuml
+left to right direction
+title Système de Gestion des Projets Bancaires — Équipe Développement
+
+actor "Équipe Développement" as DEV
+
+rectangle "Système de Gestion des Projets Bancaires" {
+  (Consulter projet) as UC_CP
+  (Déposer document) as UC_DD
+
+  rectangle "Réalisation" {
+    (Livrer application) as UC_LA
+    (Développer application) as UC_DA
+    (Mettre à jour statut projet) as UC_MS
+    (Gérer sous-tâches) as UC_ST
+  }
+  rectangle "Conception Technique" {
+    (Rédiger spécifications techniques) as UC_STC
+  }
+}
+
+DEV --> UC_CP
+DEV --> UC_DD
+DEV --> UC_LA
+DEV --> UC_DA
+DEV --> UC_MS
+DEV --> UC_ST
+DEV --> UC_STC
+
+UC_LA ..> UC_DA : <<extend>>
+UC_DA ..> UC_STC : <<include>>
+@enduml
+```
+
+---
+
+## Diagramme de classes (PlantUML)
+
+```plantuml
+@startuml
+title Modèle métier — gestion de projets bancaires
+
+enum RoleUtilisateur {
+  MANAGER
+  MOA
+  METIER
+  DEVELOPPEMENT
+}
+
+enum StatutProjet {
+  BROUILLON
+  EN_COURS
+  EN_RECETTE
+  TERMINE
+}
+
+enum StatutEtape {
+  EN_ATTENTE
+  EN_COURS
+  A_VALIDER
+  VALIDEE
+  REFUSEE
+}
+
+class Utilisateur {
+  +id : Long
+  +nomUtilisateur : String
+  +email : String
+  +role : RoleUtilisateur
+  +actif : Boolean
+}
+
+class Projet {
+  +id : Long
+  +code : String
+  +titre : String
+  +statut : StatutProjet
+}
+
+class Etape {
+  +id : Long
+  +nom : String
+  +ordre : Integer
+  +statut : StatutEtape
+}
+
+class Validation {
+  +id : Long
+  +dateValidation : DateTime
+  +approuve : Boolean
+  +commentaire : String
+}
+
+class Document {
+  +id : Long
+  +titre : String
+  +typeDocument : String
+  +cheminStockage : String
+  +version : Integer
+}
+
+class Tache {
+  +id : Long
+  +libelle : String
+  +complete : Boolean
+}
+
+Utilisateur "1" -- "*" Projet : contribue
+Projet "1" *-- "*" Etape
+Etape "1" -- "*" Validation
+Utilisateur "1" -- "*" Validation : valideur
+Projet "1" o-- "*" Document
+Etape "0..1" o-- "*" Document
+Tache "*" -- "1" Etape
+@enduml
+```
+
+---
+
+## Diagrammes de séquence (PlantUML)
+
+### Validation d’une étape stratégique
+
+```plantuml
+@startuml
+title Valider une étape stratégique
+
+actor Manager as M
+participant "Interface" as UI
+participant "API" as API
+participant "Service métier" as SVC
+database "Base de données" as DB
+
+M -> UI : Décision (Approuver / Refuser)
+UI -> API : PUT /projets/{id}/etapes/{eid}/validation
+API -> SVC : enregistrerValidation(...)
+SVC -> DB : transaction (Validation + Etape)
+DB --> SVC : OK
+SVC --> API : étape mise à jour
+API --> UI : réponse HTTP 200
+UI --> M : confirmation
+@enduml
+```
+
+### Dépôt de document
+
+```plantuml
+@startuml
+title Déposer un document sur un projet
+
+actor "Équipe Développement" as DEV
+participant "Interface" as UI
+participant "API" as API
+participant "Fichiers" as FS
+database "Base de données" as DB
+
+DEV -> UI : Choisir fichier + métadonnées
+UI -> API : POST /projets/{id}/documents (multipart)
+API -> FS : stocker fichier
+FS --> API : chemin / identifiant
+API -> DB : enregistrer Document
+DB --> API : document créé
+API --> UI : 201 Created
+UI --> DEV : accusé de réception
+@enduml
+```
+
+### Création d’utilisateur (Manager)
+
+```plantuml
+@startuml
+title Création d'utilisateur (Manager)
+
+actor Manager as M
+participant "Interface" as UI
+participant "API" as API
+participant "Service sécurité" as SEC
+database "Base de données" as DB
+
+M -> UI : Saisir compte + rôle
+UI -> API : POST /api/users
+API -> SEC : créerUtilisateur (validation, hachage)
+SEC -> DB : INSERT User
+DB --> SEC : utilisateur créé
+SEC --> API : UserResponse
+API --> UI : 201 Created
+UI --> M : compte affiché
+@enduml
+```
+
+---
+
+## Diagramme d’activité — workflow (PlantUML)
+
+```plantuml
+@startuml
+title Workflow projet — du besoin au Go Live
+
+start
+:Expression du besoin;
+:Fiche besoins métier;
+:Spécification fonctionnelle (MOA);
+
+if (Validation Manager ?) then (Approuvé)
+  :Validation Manager OK;
+else (Refus)
+  :Correction spécification;
+  :Spécification fonctionnelle (MOA);
+  detach
+endif
+
+if (Validation Métier ?) then (Approuvé)
+  :Validation Métier OK;
+else (Refus)
+  :Correction spécification;
+  :Spécification fonctionnelle (MOA);
+  detach
+endif
+
+:Développement;
+:Spécification technique (Dev);
+:Livraison application;
+:Tests MOA;
+
+if (Tests MOA validés ?) then (Oui)
+  :Rédaction cahier de recette;
+else (Non)
+  :Correction anomalies;
+  :Développement;
+  detach
+endif
+
+:Tests métier (UAT);
+
+if (Tests métier validés ?) then (Oui)
+else (Non)
+  :Correction anomalies;
+  :Développement;
+  detach
+endif
+
+if (Mode opératoire requis ?) then (Oui)
+  :Rédaction mode opératoire;
+else (Non)
+endif
+
+:Go Live;
+stop
+@enduml
+```
+
+*Remarque : ajuster les branchements `detach` ou utiliser `backward` dans PlantUML pour reproduire exactement les retours vers les activités de votre schéma papier.*
+
+---
+
+## Générer les images à partir du code
+
+- **En ligne** : coller chaque bloc entre `@startuml` et `@enduml` sur [PlantUML Web Server](https://www.plantuml.com/plantuml/).
+- **En local** : PlantUML (JAR) avec Java, ou une extension d’éditeur (VS Code, IntelliJ) pour prévisualiser et exporter PNG/SVG.
+- **Intégration** : possibilité d’automatiser la génération d’images dans un pipeline CI pour joindre les figures à une version PDF ou HTML du dossier.
+
+---
+
+## Rôles dans le code applicatif
+
+Dans le projet Spring Boot (`com.wifakbank.project_management`), l’énumération des rôles utilisateur est définie avec les valeurs suivantes : **MANAGER**, **MOA**, **METIER**, **DEVELOPPEMENT**.  
+Les diagrammes de cas d’utilisation et le modèle métier doivent rester alignés avec ces rôles lors de l’implémentation et des tests d’accès.
+
+---
+
+*Document généré pour le dépôt project-management — format Markdown dans le fichier `word.docs` (ouvrir avec un éditeur Markdown ou renommer en `.md` si besoin). Pour un fichier Microsoft Word natif (`.docx`), exporter ce contenu via Pandoc ou copier-coller dans Word.*

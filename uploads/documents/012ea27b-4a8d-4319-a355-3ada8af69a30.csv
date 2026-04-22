@@ -1,0 +1,6 @@
+﻿id;username;email;role;enabled;lastLoginAt
+1;manager;manager@wifakbank.tn;MANAGER;actif;2026-04-16T15:34:58Z
+3;adem;adem@wifakbank.tn;ADMINISTRATEUR;actif;2026-04-13T10:55:09Z
+5;aymen.ay;aymen@wifakbank.tn;ADMINISTRATEUR;actif;2026-04-13T14:29:37Z
+6;lina.moa;lina@wifakbank.tn;MOA;actif;2026-04-16T00:18:43Z
+7;youssef.youssef;youssef@wifakbank.tn;DEVELOPPEMENT;actif;2026-04-16T11:45:33Z

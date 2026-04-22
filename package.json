@@ -1,0 +1,16 @@
+{
+  "name": "project-management-root",
+  "version": "1.0.0",
+  "description": "Root management for project-management (Spring Boot + Angular)",
+  "scripts": {
+    "start": "npm run dev",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "frontend": "cd stagepfe-front && npm start",
+    "backend": "mvnw.cmd spring-boot:run",
+    "install:all": "npm install && cd stagepfe-front && npm install",
+    "build:all": "mvnw.cmd package -DskipTests && cd stagepfe-front && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.5"
+  }
+}

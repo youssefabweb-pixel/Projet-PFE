@@ -1,0 +1,233 @@
+<div class="planning-container">
+  <header class="planning-header">
+    <div class="header-top-row">
+      <div class="header-content">
+        <h1>Planification & Avancement</h1>
+        <p class="text-muted">Suivi détaillé de la progression des projets, jalons et tâches.</p>
+      </div>
+      <button mat-stroked-button class="back-projects-btn" (click)="goBackToProjects()">
+        <span class="ui-glyph" aria-hidden="true">←</span>
+        Retour aux fiches projets
+      </button>
+    </div>
+  </header>
+
+  <!-- Toolbar: Search, Filter & Sort -->
+  <section class="planning-toolbar wb-card">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <span class="search-glyph" aria-hidden="true">🔎</span>
+        <input [formControl]="searchControl" placeholder="Rechercher (Nom, Code, Manager...)" />
+      </div>
+    </div>
+
+    <div class="toolbar-right">
+      <div class="filter-group">
+        <span class="label">Statut :</span>
+        <div class="chips">
+          <button class="chip" [class.active]="statusFilter() === 'ALL'" (click)="statusFilter.set('ALL')">Tous</button>
+          <button class="chip chip--run" [class.active]="statusFilter() === 'EN_COURS'" (click)="statusFilter.set('EN_COURS')">En cours</button>
+          <button class="chip chip--done" [class.active]="statusFilter() === 'TERMINE'" (click)="statusFilter.set('TERMINE')">Terminé</button>
+        </div>
+      </div>
+
+      <div class="sort-group">
+        <span class="label">Trier par :</span>
+        <button mat-button [class.active-sort]="sortBy() === 'NAME'" (click)="sortBy.set('NAME')">Nom</button>
+        <button mat-button [class.active-sort]="sortBy() === 'PROGRESS'" (click)="sortBy.set('PROGRESS')">Avancement</button>
+        <button mat-button [class.active-sort]="sortBy() === 'DATE'" (click)="sortBy.set('DATE')">Échéance</button>
+        <button mat-stroked-button class="risk-filter-btn" [class.active-risk]="riskOnly()" (click)="riskOnly.set(!riskOnly())">
+          <span class="ui-glyph" aria-hidden="true">⚠</span>
+          Projets à risque
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="kpi-strip">
+    <article class="kpi-card wb-card">
+      <p class="kpi-label">Portefeuille affiché</p>
+      <strong class="kpi-value">{{ dashboardStats().totalProjects }}</strong>
+    </article>
+    <article class="kpi-card wb-card">
+      <p class="kpi-label">Projets en cours</p>
+      <strong class="kpi-value">{{ dashboardStats().inProgress }}</strong>
+    </article>
+    <article class="kpi-card wb-card">
+      <p class="kpi-label">Tâches en retard</p>
+      <strong class="kpi-value kpi-risk">{{ dashboardStats().delayedTasks }}</strong>
+    </article>
+    <article class="kpi-card wb-card">
+      <p class="kpi-label">Tâches bloquées</p>
+      <strong class="kpi-value kpi-blocked">{{ dashboardStats().blockedTasks }}</strong>
+    </article>
+    <article class="kpi-card wb-card">
+      <p class="kpi-label">Avancement moyen</p>
+      <strong class="kpi-value">{{ dashboardStats().avgProgress }}%</strong>
+    </article>
+  </section>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Mise à jour des données...</p>
+    </div>
+  } @else if (filteredProjects().length === 0) {
+    <div class="empty-state wb-card">
+      <mat-icon>folder_off</mat-icon>
+      <p>Aucun projet ne correspond à vos critères.</p>
+    </div>
+  } @else {
+    <div class="projects-grid">
+      @for (project of filteredProjects(); track project.id) {
+        <article class="project-card wb-card" [class.project-card--completed]="project.completed">
+          <div class="project-card__header">
+            <div class="project-info">
+              <div class="project-info__top">
+                <span class="project-code">{{ project.code }}</span>
+                <span class="project-status-badge" [attr.data-status]="project.status">{{ projectStatusLabel(project.status) }}</span>
+              </div>
+              <h3>{{ project.name }}</h3>
+              <div class="project-manager" *ngIf="project.chefProjet">
+                <span class="ui-glyph" aria-hidden="true">👤</span>
+                <span>Chef de Projet : <strong>{{ project.chefProjet.username }}</strong></span>
+              </div>
+              <div class="project-dates">
+                <div class="date-item">
+                  <span class="ui-glyph" aria-hidden="true">📅</span>
+                  <div class="date-label">Début : <span>{{ project.plannedStartDate | date:'mediumDate' }}</span></div>
+                </div>
+                <div class="date-item">
+                  <span class="ui-glyph" aria-hidden="true">📅</span>
+                  <div class="date-label">Fin : <span>{{ project.plannedEndDate | date:'mediumDate' }}</span></div>
+                </div>
+              </div>
+              <div class="project-risk-summary" *ngIf="projectRiskCount(project) > 0">
+                <span class="risk-badge">{{ delayedTasksCount(project) }} en retard</span>
+                <span class="blocked-badge" *ngIf="blockedTasksCount(project) > 0">{{ blockedTasksCount(project) }} bloquées</span>
+              </div>
+            </div>
+            
+            <div class="project-visuals">
+              <div class="project-progress-circle" [matTooltip]="project.progress + '% de progression totale'">
+                <div class="progress-ring">
+                  <svg viewBox="0 0 36 36">
+                    <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path class="ring-progress" [class]="progressColorClass(project.progress)"
+                      [style.stroke-dasharray]="project.progress + ', 100'"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  </svg>
+                  <span class="progress-val">{{ project.progress }}%</span>
+                </div>
+              </div>
+              <div class="project-actions" *ngIf="isEditor(project)">
+                <button mat-flat-button color="primary" (click)="$event.stopPropagation(); addMilestone(project)">
+                  Ajouter un jalon
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="project-card__content">
+            <mat-accordion class="milestones-accordion" multi>
+              @for (milestone of project.milestones; track milestone.id; let i = $index) {
+                <mat-expansion-panel class="milestone-panel" [class.milestone-panel--done]="milestone.completed" [disabled]="isMilestoneLocked(project, i)">
+                  <mat-expansion-panel-header>
+                    <mat-panel-title>
+                      <span class="milestone-marker" [class.milestone-marker--done]="milestone.completed">{{ milestone.completed ? 'Terminé' : 'Jalon' }}</span>
+                      {{ milestone.name }}
+                    </mat-panel-title>
+                    <mat-panel-description>
+                      <div class="milestone-meta">
+                        <span class="deadline" [title]="'Échéance: ' + (milestone.deadline | date)">
+                          {{ milestone.deadline | date:'dd/MM' }}
+                        </span>
+                        <div class="mini-progress-bar">
+                          <div class="fill" [class]="progressColorClass(milestone.progress)" [style.width.%]="milestone.progress"></div>
+                        </div>
+                        <span class="percent">{{ milestone.progress }}%</span>
+                        <div class="milestone-actions" *ngIf="isEditor(project)">
+                          <button mat-stroked-button class="action-btn action-btn--edit" [disabled]="isMilestoneLocked(project, i)" [matTooltip]="isMilestoneLocked(project, i) ? milestoneLockReason(project, i) : 'Modifier'" (click)="$event.stopPropagation(); editMilestone(project, milestone)">
+                            Modifier
+                          </button>
+                          <button mat-stroked-button class="action-btn action-btn--delete" [disabled]="isMilestoneLocked(project, i)" [matTooltip]="isMilestoneLocked(project, i) ? milestoneLockReason(project, i) : 'Supprimer'" (click)="$event.stopPropagation(); deleteMilestone(milestone)">
+                            Supprimer
+                          </button>
+                        </div>
+                      </div>
+                    </mat-panel-description>
+                  </mat-expansion-panel-header>
+
+                  <div class="tasks-checklist">
+                    @for (task of milestone.tasks; track task.id) {
+                      <div class="task-row" [class.task-row--done]="task.status === 'DONE'" [attr.data-task-status]="task.status">
+                        <div class="task-left">
+                          <div class="task-main-info">
+                            <span class="task-title">{{ task.name }}</span>
+                            <div class="task-meta-info">
+                              <span class="task-status-text" [attr.data-status]="task.status">{{ taskStatusLabel(task.status) }}</span>
+                              <span class="task-delay-badge" *ngIf="task.delayDays && task.delayDays > 0">
+                                Retard : {{ task.delayDays }}j
+                              </span>
+                            </div>
+                          </div>
+                          <div class="task-progress-control" *ngIf="isEditor(project)">
+                             <div class="progress-info">
+                               <span class="progress-val">{{ task.progress }}%</span>
+                               <input type="range" [value]="task.progress" min="0" max="100" step="5" (click)="$event.stopPropagation()"
+                                      (change)="onTaskProgressQuickChange(task, $event)">
+                             </div>
+                          </div>
+                        </div>
+
+                        <div class="task-right">
+                          <div class="task-badges">
+                            <span class="priority-badge" [class]="priorityClass(task.priority)">
+                              {{ priorityLabel(task.priority) }}
+                            </span>
+                            <span class="assignee-tag" *ngIf="task.assignee">
+                              Assigné à : {{ task.assignee.username }}
+                            </span>
+                          </div>
+                          <div class="task-actions" *ngIf="isEditor(project)">
+                            <button mat-stroked-button class="action-btn action-btn--edit" matTooltip="Modifier" (click)="editTask(project, task)">
+                              Modifier
+                            </button>
+                            <button mat-stroked-button class="action-btn action-btn--delete" matTooltip="Supprimer" (click)="deleteTask(task)">
+                              Supprimer
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="task-justification" *ngIf="task.justification">
+                          <strong>Justification :</strong> {{ task.justification }}
+                        </div>
+                      </div>
+                    } @empty {
+                      <p class="empty-tasks">Aucune tâche planifiée pour ce jalon.</p>
+                    }
+
+                    <div class="add-task-row" *ngIf="isEditor(project)">
+                      <button mat-button color="primary" [disabled]="isMilestoneLocked(project, i)" [matTooltip]="isMilestoneLocked(project, i) ? milestoneLockReason(project, i) : 'Ajouter une tâche'" (click)="addTask(project, milestone.id)">
+                        Ajouter une tâche
+                      </button>
+                    </div>
+                  </div>
+                </mat-expansion-panel>
+              } @empty {
+                <div class="empty-milestones-cta">
+                  <mat-icon>insights</mat-icon>
+                  <p>Commencez la planification en ajoutant votre premier jalon.</p>
+                  <button mat-stroked-button color="primary" (click)="addMilestone(project)" *ngIf="isEditor(project)">
+                    <mat-icon>add</mat-icon>
+                    Créer le premier jalon
+                  </button>
+                </div>
+              }
+            </mat-accordion>
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>

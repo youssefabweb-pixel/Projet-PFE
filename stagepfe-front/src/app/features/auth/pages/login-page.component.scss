@@ -1,0 +1,202 @@
+:host {
+  display: block;
+  min-height: 100dvh;
+}
+
+.auth-page {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem 2.5rem;
+  overflow: hidden;
+}
+
+.auth-page__bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+      165deg,
+      #f0f5fc 0%,
+      var(--neutral-50, #f5f7fb) 38%,
+      #e8eef8 72%,
+      #f5f7fb 100%
+    );
+  z-index: 0;
+}
+
+.auth-page__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 48, 135, 0.09), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(227, 6, 19, 0.06), transparent 50%),
+    radial-gradient(ellipse 50% 35% at 0% 80%, rgba(168, 169, 173, 0.12), transparent 45%);
+  pointer-events: none;
+}
+
+.auth-page__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.auth-page__orb--1 {
+  width: min(420px, 70vw);
+  height: min(420px, 70vw);
+  top: -12%;
+  right: -8%;
+  background: radial-gradient(circle, rgba(0, 85, 204, 0.35) 0%, transparent 70%);
+}
+
+.auth-page__orb--2 {
+  width: min(360px, 60vw);
+  height: min(360px, 60vw);
+  bottom: -10%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(227, 6, 19, 0.18) 0%, transparent 65%);
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface, #fff);
+  border-radius: var(--radius-3xl, 1.5rem);
+  border: 1px solid var(--border, rgba(0, 48, 135, 0.14));
+  box-shadow: var(--shadow-lg, 0 16px 48px rgba(0, 48, 135, 0.12));
+  padding: 0 1.65rem 1.5rem;
+  overflow: hidden;
+}
+
+.auth-card__accent {
+  height: 4px;
+  margin: 0 -1.65rem 1.25rem;
+  background: linear-gradient(90deg, var(--primary, #003087) 0%, var(--accent, #e30613) 52%, var(--metal, #a8a9ad) 100%);
+  border-radius: var(--radius-3xl) var(--radius-3xl) 0 0;
+}
+
+.auth-card__head {
+  text-align: center;
+  margin-bottom: 1.35rem;
+}
+
+.auth-card__logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.35rem;
+}
+
+.auth-card__logo {
+  height: auto;
+  max-height: 64px;
+  width: auto;
+  max-width: min(240px, 100%);
+  object-fit: contain;
+}
+
+.auth-card__tagline {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary, #003087);
+  letter-spacing: 0.02em;
+}
+
+.auth-card__head h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--neutral-900, #0a1628);
+  letter-spacing: -0.03em;
+}
+
+.auth-card__lede {
+  margin: 0.45rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-muted, #5c6b7a);
+  line-height: 1.45;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-align: start;
+}
+
+.auth-field__label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--neutral-800, #132337);
+}
+
+.auth-field__hint {
+  font-size: 0.72rem;
+  color: var(--text-muted, #5c6b7a);
+  margin-top: -0.1rem;
+}
+
+.auth-field__input {
+  width: 100%;
+}
+
+.auth-form__hint {
+  margin: -0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--accent, #e30613);
+}
+
+.auth-submit {
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.35rem;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+  font-size: 0.9375rem;
+}
+
+.auth-submit:disabled {
+  opacity: 0.65;
+}
+
+.auth-card__foot {
+  margin-top: 1.5rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border, rgba(0, 48, 135, 0.12));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--metal, #a8a9ad);
+}
+
+.auth-card__brand-line {
+  color: var(--primary, #003087);
+  letter-spacing: 0.18em;
+}
+
+.auth-card__sep {
+  opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-page__orb {
+    display: none;
+  }
+}

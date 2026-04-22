@@ -1,0 +1,12 @@
+.auth-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(165deg, var(--neutral-50) 0%, #eef3fb 40%, #e8eef8 100%);
+}
+
+.auth-shell__main {
+  flex: 1;
+  min-height: 0;
+  padding: 0.75rem;
+}

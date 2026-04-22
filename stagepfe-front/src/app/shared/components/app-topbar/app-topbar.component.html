@@ -1,0 +1,112 @@
+<header class="topbar" role="banner">
+  <div class="topbar__brand">
+    <a [routerLink]="homeLink()" class="topbar__logo-link" aria-label="WIFAK BANK — Accueil application">
+      <img src="assets/brand/logo-wifak.jpg" alt="" class="topbar__logo" width="140" height="40" />
+    </a>
+    <span class="topbar__bank font-arabic" lang="ar" aria-hidden="true">بنك الوفاق</span>
+  </div>
+
+  <nav class="topbar__nav" aria-label="Navigation applicative">
+    @if (canSeeProjectsNav()) {
+      <a routerLink="/projects" routerLinkActive="is-active">Fiches projets</a>
+    }
+    @if (canSeeUsersNav()) {
+      <a routerLink="/users" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: false }">Utilisateurs</a>
+    }
+  </nav>
+
+  <div class="topbar__actions">
+    <span class="topbar__hint" title="Raccourcis clavier">
+      <kbd>Ctrl</kbd><span>+</span><kbd>K</kbd> recherche
+      <span class="sep">·</span>
+      <kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>N</kbd> créer
+    </span>
+
+    <button
+      type="button"
+      class="icon-btn"
+      (click)="theme.toggle()"
+      [attr.aria-label]="theme.darkMode() ? 'Passer en thème clair' : 'Passer en thème sombre'"
+      [attr.aria-pressed]="theme.darkMode()"
+    >
+      @if (theme.darkMode()) {
+        <span class="icon" aria-hidden="true">☀</span>
+      } @else {
+        <span class="icon" aria-hidden="true">☾</span>
+      }
+    </button>
+
+    <button
+      type="button"
+      class="icon-btn icon-btn--bell"
+      cdkOverlayOrigin
+      #notifOrigin="cdkOverlayOrigin"
+      (click)="togglePanel()"
+      [attr.aria-expanded]="panelOpen()"
+      aria-haspopup="dialog"
+      aria-controls="notif-panel"
+      aria-label="Notifications"
+    >
+      <span class="icon" aria-hidden="true">🔔</span>
+      @if (notifications.unreadCount() > 0) {
+        <span class="notif-badge">{{ notifications.unreadCount() > 99 ? '99+' : notifications.unreadCount() }}</span>
+      }
+    </button>
+
+    <ng-template
+      cdkConnectedOverlay
+      [cdkConnectedOverlayOrigin]="notifOrigin"
+      [cdkConnectedOverlayOpen]="panelOpen()"
+      [cdkConnectedOverlayPositions]="overlayPositions"
+      [cdkConnectedOverlayHasBackdrop]="true"
+      cdkConnectedOverlayBackdropClass="wb-overlay-backdrop"
+      (backdropClick)="closePanel()"
+      (detach)="closePanel()"
+    >
+      <div
+        id="notif-panel"
+        class="notif-panel"
+        role="dialog"
+        aria-label="Centre de notifications"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="notif-panel__head">
+          <h2>Notifications</h2>
+          @if (notifications.unreadCount() > 0) {
+            <button type="button" class="linkish" (click)="markAllRead()">Tout lu</button>
+          }
+        </div>
+
+        <ul class="notif-list" tabindex="-1">
+          @for (n of notifications.items(); track n.id) {
+            <li
+              class="notif-item"
+              [class.notif-item--unread]="!n.read"
+              [attr.data-kind]="n.type"
+              (click)="markRead(n.id)"
+            >
+              <div class="notif-item__icon" aria-hidden="true">{{ notifIcon(n.type) }}</div>
+              <div class="notif-item__body">
+                <div class="notif-item__title">{{ notifLabel(n.type) }}</div>
+                <p class="notif-item__msg">{{ n.message }}</p>
+                <div class="notif-item__meta">
+                  <time [attr.datetime]="n.createdAt">{{ formatTime(n.createdAt) }}</time>
+                </div>
+              </div>
+              @if (!n.read) {
+                <span class="notif-item__dot" aria-hidden="true"></span>
+              }
+            </li>
+          } @empty {
+            <li class="notif-empty">
+              <span class="notif-empty__ico" aria-hidden="true">🎉</span>
+              <span>Aucune notification</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </ng-template>
+
+    <button type="button" class="btn btn--ghost btn--compact" (click)="logout()">Déconnexion</button>
+  </div>
+</header>

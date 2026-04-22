@@ -1,0 +1,20 @@
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="brand"><img src="assets/brand/logo-wifak.jpg" alt="WIFAK BANK � ??? ??????" /></div>
+    <h2>Welcome to sneat! ????</h2>
+    <p>Please sign-in to your account and start the adventure.</p>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <label>Email <input type="email" formControlName="email" placeholder="johndoe@email.com" /></label>
+      <label>Password <input type="password" formControlName="password" placeholder="������������" /></label>
+
+      <div class="actions">
+        <a routerLink="/forgot-password">Forgot Password?</a>
+      </div>
+
+      <button type="submit">Login</button>
+    </form>
+
+    <p class="switch">New on our platform? <a routerLink="/register">Create an account</a></p>
+  </div>
+</div>

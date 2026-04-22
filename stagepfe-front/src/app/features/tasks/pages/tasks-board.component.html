@@ -1,0 +1,199 @@
+<div class="board-page">
+  <!-- Header: Project Selector & Info -->
+  <header class="board-header">
+    <div class="board-header__main">
+      <h1>Planification & Avancement</h1>
+      <div class="project-selector">
+        <label for="project-sel">Projet :</label>
+        <select id="project-sel" [ngModel]="selectedProjectId()" (ngModelChange)="onProjectChange($event)">
+          @for (p of projects(); track p.id) {
+            <option [ngValue]="p.id">{{ (p?.code ?? '') + ' - ' + (p?.name ?? '') }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    @if (selectedProject()) {
+      <div class="project-summary wb-card">
+        <div class="summary-item">
+          <span class="summary-item__lbl">Début réel</span>
+          <span class="summary-item__val">{{ (selectedProject()?.actualStartDate | date:'dd/MM/yyyy') || 'Non commencé' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-item__lbl">Fin réelle</span>
+          <span class="summary-item__val">{{ (selectedProject()?.actualEndDate | date:'dd/MM/yyyy') || 'En cours' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-item__lbl">Avancement Global</span>
+          <div class="summary-progress">
+             <div class="progress-bar">
+                <div class="progress-bar__fill" [style.width.%]="selectedProject()?.progressPercent || 0"></div>
+             </div>
+             <span class="progress-text">{{ selectedProject()?.progressPercent ?? 0 }}%</span>
+          </div>
+        </div>
+        <div class="summary-actions">
+           <button class="btn btn--primary btn--sm" (click)="openMilestoneDialog()">
+             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+             Nouveau Jalon
+           </button>
+        </div>
+      </div>
+    }
+
+    @if (selectedProject() && canManagePlanning() && planningDraft(); as planning) {
+      <div class="planning-panel wb-card">
+        <div class="planning-panel__head">
+          <h3>Planification & avancement</h3>
+          <button class="btn btn--primary btn--sm" type="button" [disabled]="planningSaving()" (click)="savePlanning()">
+            {{ planningSaving() ? 'Enregistrement...' : 'Enregistrer' }}
+          </button>
+        </div>
+
+        <div class="planning-grid">
+          <div class="planning-field">
+            <label>Statut</label>
+            <select [ngModel]="planning.status" (ngModelChange)="planningDraft.set({ ...planning, status: $event })">
+              @for (s of projectStatusOptions; track s) {
+                <option [ngValue]="s">{{ statusLabel(s) }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="planning-field">
+            <label>Avancement ({{ planning.progressPercent }}%)</label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              [ngModel]="planning.progressPercent"
+              (ngModelChange)="planningDraft.set({ ...planning, progressPercent: $event })"
+            />
+          </div>
+
+          <div class="planning-field">
+            <label>Début prévu</label>
+            <input
+              type="date"
+              [disabled]="!canEditPlanningStartDate()"
+              [ngModel]="planning.plannedStartDate"
+              (ngModelChange)="planningDraft.set({ ...planning, plannedStartDate: $event })"
+            />
+          </div>
+
+          <div class="planning-field">
+            <label>Fin prévue</label>
+            <input
+              type="date"
+              [ngModel]="planning.plannedEndDate"
+              (ngModelChange)="planningDraft.set({ ...planning, plannedEndDate: $event || null })"
+            />
+          </div>
+        </div>
+      </div>
+    }
+  </header>
+
+  <!-- Board Content -->
+  <div class="board-container" [class.board-container--loading]="loading()">
+    @if (loading()) {
+      <div class="loader-overlay">
+        <div class="loader"></div>
+        <p>Chargement du planning...</p>
+      </div>
+    }
+
+    <div class="kanban" cdkDropListGroup>
+      @for (milestone of milestones(); track milestone.id) {
+        <section class="milestone-col">
+          <header class="milestone-header">
+            <div class="milestone-title-row">
+               <h2 class="milestone-title" (click)="openMilestoneDialog(milestone)">{{ milestone?.title }}</h2>
+               <div class="milestone-actions">
+                  <span class="status-badge" [ngClass]="milestone ? getStatusClass(milestone.status) : ''">
+                    {{ milestone ? getStatusLabel(milestone.status) : '' }}
+                  </span>
+                  <button class="btn-icon" (click)="deleteMilestone(milestone, $event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </button>
+               </div>
+            </div>
+            
+            <div class="milestone-meta">
+              <span class="milestone-deadline">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Deadline: {{ milestone?.deadline | date:'dd/MM/yy' }}
+              </span>
+              <span class="milestone-percent">{{ milestone?.progressPercent ?? 0 }}%</span>
+            </div>
+
+            <div class="progress-bar progress-bar--mini">
+              <div class="progress-bar__fill" [style.width.%]="milestone?.progressPercent || 0" [ngClass]="milestone ? getStatusClass(milestone.status) : ''"></div>
+            </div>
+
+            @if (milestone && (milestone.status === 'EN_RETARD' || milestone.status === 'BLOQUE')) {
+              <div class="milestone-alert">
+                 <strong>Justification:</strong> {{ milestone?.justification || 'Manquante !' }}
+              </div>
+            }
+          </header>
+
+          <div
+            class="task-list"
+            cdkDropList
+            [cdkDropListData]="milestone?.tasks || []"
+            [id]="'milestone-' + milestone?.id"
+            [cdkDropListConnectedTo]="connectedIds()"
+            (cdkDropListDropped)="drop($event, milestone.id)"
+          >
+            @for (task of (milestone?.tasks || []); track task.id) {
+              <article class="task-card" cdkDrag (click)="openTaskDialog(milestone.id, task)">
+                <div class="task-card__header">
+                  <strong>{{ task?.title }}</strong>
+                  <div class="task-card__actions">
+                    <button class="btn-icon btn-icon--danger" (click)="deleteTask(task, $event)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2 2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                    @if (task?.assignee) {
+                      <span class="task-card__assignee">
+                        {{ (task?.assignee?.username ?? '?')[0] | uppercase }}
+                      </span>
+                    }
+                  </div>
+                </div>
+                
+                @if (task?.description) {
+                  <p class="task-card__desc">{{ task?.description }}</p>
+                }
+
+                <div class="task-card__dates">
+                   <span>{{ task?.startDate | date:'dd/MM' }}</span>
+                   <span>→</span>
+                   <span [class.text-danger]="milestone?.status === 'EN_RETARD'">{{ task?.endDate | date:'dd/MM' }}</span>
+                </div>
+
+                <div class="task-card__progress">
+                  <input #progSlider type="range" min="0" max="100" [ngModel]="task?.progressPercent" 
+                         (change)="updateTaskProgress(task, progSlider.value)"
+                         class="progress-slider" />
+                  <span class="progress-val">{{ task?.progressPercent ?? 0 }}%</span>
+                </div>
+
+                @if (task?.dependencyTaskId) {
+                   <div class="task-card__dep">
+                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                     Dépendance: #{{ task?.dependencyTaskId }}
+                   </div>
+                }
+              </article>
+            }
+            
+            <button class="btn-add-task" (click)="openTaskDialog(milestone.id)">
+              + Ajouter une action
+            </button>
+          </div>
+        </section>
+      }
+    </div>
+  </div>
+</div>

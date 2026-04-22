@@ -1,0 +1,250 @@
+<div class="page">
+  <header class="page__header">
+    <div class="page__title-block">
+      <h1>Gestion des utilisateurs</h1>
+      <p class="page__subtitle">Filtrage, tri multi-colonnes, export — raccourcis <kbd>Ctrl</kbd>+<kbd>K</kbd> (recherche).</p>
+    </div>
+    <div class="page__actions">
+      <button type="button" class="btn btn--secondary" (click)="exportCsv()" [disabled]="users().length === 0">
+        Export CSV
+      </button>
+      <button
+        *ngIf="canCreateUser()"
+        type="button"
+        class="btn btn--accent"
+        (click)="openCreate()"
+        title="Raccourci : Ctrl+Shift+N"
+      >
+        Créer un utilisateur
+      </button>
+    </div>
+  </header>
+
+  <section class="wb-card wb-card-pad users-card">
+    <div class="toolbar toolbar--split">
+      <label class="search">
+        <span class="sr-only">Recherche</span>
+        <input
+          #searchInput
+          class="wb-input"
+          type="search"
+          [ngModel]="searchRaw()"
+          (ngModelChange)="searchRaw.set($event)"
+          placeholder="Recherche (debounce 300 ms)…"
+          autocomplete="off"
+          aria-describedby="search-hint"
+        />
+        <span id="search-hint" class="field-hint">Username, e-mail ou rôle</span>
+      </label>
+
+      <div class="col-toggles" role="group" aria-label="Colonnes visibles">
+        <span class="col-toggles__label">Colonnes</span>
+        @for (c of columnDefs; track c.key) {
+          <label class="col-chip">
+            <input type="checkbox" [checked]="colVisible()[c.key]" (change)="toggleCol(c.key)" />
+            {{ c.label }}
+          </label>
+        }
+      </div>
+    </div>
+
+    @if (roleOptions().length > 0) {
+      <div class="chips" role="group" aria-label="Filtrer par rôle">
+        <span class="chips__label">Rôles</span>
+        <button
+          type="button"
+          class="chip"
+          [class.chip--active]="selectedRoles().size === 0"
+          (click)="clearRoleFilters()"
+        >
+          Tous
+        </button>
+        @for (role of roleOptions(); track role) {
+          <button
+            type="button"
+            class="chip"
+            [class.chip--active]="selectedRoles().has(role)"
+            (click)="toggleRoleChip(role)"
+          >
+            {{ role }}
+          </button>
+        }
+      </div>
+    }
+
+    @if (loading()) {
+      <div class="loading-state" aria-busy="true" aria-live="polite">
+        <div class="wb-spinner" aria-hidden="true"></div>
+        <p class="loading-state__msg">Chargement des utilisateurs…</p>
+        <div class="skeleton-block" aria-hidden="true">
+          @for (i of skeletonRows; track i) {
+            <div class="skeleton-row"></div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (!loading() && loadError()) {
+      <div class="alert alert--error error-row" role="alert">
+        <span>{{ loadError() }}</span>
+        <button type="button" class="btn btn--retry" (click)="retryLoad()">Réessayer</button>
+      </div>
+    }
+
+    @if (!loading() && !loadError() && pagedUsers().length > 0) {
+      <div class="wb-table-wrap table-anim">
+        <table class="wb-data-table users-table">
+          <thead>
+            <tr>
+              @if (colVisible()['id']) {
+                <th scope="col">
+                  <button type="button" class="th-btn" (click)="toggleSort('id')">ID {{ sortIcon('id') }}</button>
+                </th>
+              }
+              @if (colVisible()['username']) {
+                <th scope="col">
+                  <button type="button" class="th-btn" (click)="toggleSort('username')">
+                    Username {{ sortIcon('username') }}
+                  </button>
+                </th>
+              }
+              @if (colVisible()['email']) {
+                <th scope="col">
+                  <button type="button" class="th-btn" (click)="toggleSort('email')">
+                    E-mail {{ sortIcon('email') }}
+                  </button>
+                </th>
+              }
+              @if (colVisible()['role']) {
+                <th scope="col">
+                  <button type="button" class="th-btn" (click)="toggleSort('role')">
+                    Rôle {{ sortIcon('role') }}
+                  </button>
+                </th>
+              }
+              @if (colVisible()['status']) {
+                <th scope="col">
+                  <button type="button" class="th-btn" (click)="toggleSort('enabled')">
+                    Statut {{ sortIcon('enabled') }}
+                  </button>
+                </th>
+              }
+              @if (colVisible()['lastLogin']) {
+                <th scope="col">
+                  <button type="button" class="th-btn" (click)="toggleSort('lastLoginAt')">
+                    Dernière connexion {{ sortIcon('lastLoginAt') }}
+                  </button>
+                </th>
+              }
+              @if (colVisible()['actions']) {
+                <th scope="col">Actions</th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of pagedUsers(); track user.id) {
+              <tr class="data-row">
+                @if (colVisible()['id']) {
+                  <td>{{ user.id }}</td>
+                }
+                @if (colVisible()['username']) {
+                  <td class="nowrap">{{ user.username }}</td>
+                }
+                @if (colVisible()['email']) {
+                  <td>{{ user.email }}</td>
+                }
+                @if (colVisible()['role']) {
+                  <td>
+                    <span class="badge" [ngClass]="roleBadgeClass(user.role)">{{ user.role }}</span>
+                  </td>
+                }
+                @if (colVisible()['status']) {
+                  <td>
+                    <span class="badge" [class.badge--active]="user.enabled" [class.badge--inactive]="!user.enabled">
+                      {{ user.enabled ? 'Actif' : 'Inactif' }}
+                    </span>
+                  </td>
+                }
+                @if (colVisible()['lastLogin']) {
+                  <td>{{ user.lastLoginAt ? (user.lastLoginAt | date : 'short') : '—' }}</td>
+                }
+                @if (colVisible()['actions']) {
+                  <td class="actions">
+                    <button type="button" class="link" (click)="openView(user.id)">Voir</button>
+                    <button *ngIf="rowPerms.get(user.id)?.canEdit" type="button" class="link" (click)="openEdit(user.id)">
+                      Modifier
+                    </button>
+                    <button
+                      *ngIf="rowPerms.get(user.id)?.canToggle"
+                      type="button"
+                      class="link"
+                      (click)="confirmToggle(user)"
+                    >
+                      {{ user.enabled ? 'Désactiver' : 'Activer' }}
+                    </button>
+                    <button
+                      *ngIf="rowPerms.get(user.id)?.canDelete"
+                      type="button"
+                      class="link link--danger"
+                      (click)="confirmDelete(user)"
+                    >
+                      Supprimer
+                    </button>
+                    <span
+                      *ngIf="
+                        !rowPerms.get(user.id)?.canEdit &&
+                        !rowPerms.get(user.id)?.canDelete &&
+                        !rowPerms.get(user.id)?.canToggle
+                      "
+                      class="muted"
+                      >—</span
+                    >
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <footer class="pager" *ngIf="totalPages() > 1">
+        <button type="button" class="btn btn--ghost btn--sm" [disabled]="pageIndex() === 0" (click)="prevPage()">
+          Précédent
+        </button>
+        <span class="pager__meta">Page {{ pageIndex() + 1 }} / {{ totalPages() }} · {{ filteredSorted().length }} ligne(s)</span>
+        <button
+          type="button"
+          class="btn btn--ghost btn--sm"
+          [disabled]="pageIndex() >= totalPages() - 1"
+          (click)="nextPage()"
+        >
+          Suivant
+        </button>
+      </footer>
+    }
+
+    @if (!loading() && !loadError() && filteredSorted().length === 0) {
+      <div class="empty" aria-live="polite">
+        <p *ngIf="users().length === 0">Aucun utilisateur trouvé</p>
+        <p *ngIf="users().length > 0">Aucun résultat pour ces filtres.</p>
+      </div>
+    }
+  </section>
+</div>
+
+<app-user-view-sheet *ngIf="viewUserId !== null" [userId]="viewUserId!" (closed)="viewUserId = null" />
+
+<app-user-form-sheet
+  *ngIf="formSheet !== null && formSheet.mode === 'create'"
+  mode="create"
+  (saved)="onUserSaved($event)"
+  (closed)="formSheet = null"
+/>
+
+<app-user-form-sheet
+  *ngIf="formSheet !== null && formSheet.mode === 'edit'"
+  mode="edit"
+  [userId]="formSheet.userId"
+  (saved)="onUserSaved($event)"
+  (closed)="formSheet = null"
+/>

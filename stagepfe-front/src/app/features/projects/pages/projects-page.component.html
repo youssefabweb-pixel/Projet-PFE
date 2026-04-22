@@ -1,0 +1,249 @@
+<div class="pp">
+
+  <!-- ══ EN-TÊTE PAGE ══════════════════════════════════════════════ -->
+  <header class="pp-header">
+    <div class="pp-header__row">
+      <div class="pp-header__left">
+        <div class="pp-header__icon-wrap" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="pp-header__title">Fiches Projets</h1>
+          <p class="pp-header__sub">
+            @if (isElevated()) {
+              Portefeuille complet — {{ projects().length }} projet(s)
+            } @else {
+              Vos projets — {{ projects().length }} fiche(s)
+            }
+          </p>
+        </div>
+      </div>
+      @if (canCreate()) {
+        <button class="btn pp-btn-new" type="button" (click)="openCreate()">
+          <span class="pp-btn-new__plus" aria-hidden="true">+</span>
+          Nouvelle fiche
+        </button>
+      }
+    </div>
+
+    <!-- Stats (PMO / Admin seulement) -->
+    @if (isElevated() && !loading()) {
+      <div class="pp-stats">
+        <div class="pp-stat pp-stat--total" (click)="statusFilter.set('ALL')" [class.pp-stat--active]="statusFilter() === 'ALL'">
+          <span class="pp-stat__num">{{ stats.total }}</span>
+          <span class="pp-stat__lbl">Total</span>
+        </div>
+        <div class="pp-stat pp-stat--run" (click)="statusFilter.set('EN_COURS')" [class.pp-stat--active]="statusFilter() === 'EN_COURS'">
+          <span class="pp-stat__num">{{ stats.enCours }}</span>
+          <span class="pp-stat__lbl">En cours</span>
+        </div>
+        <div class="pp-stat pp-stat--done" (click)="statusFilter.set('TERMINE')" [class.pp-stat--active]="statusFilter() === 'TERMINE'">
+          <span class="pp-stat__num">{{ stats.termine }}</span>
+          <span class="pp-stat__lbl">Terminés</span>
+        </div>
+        <div class="pp-stat pp-stat--draft" (click)="statusFilter.set('BROUILLON')" [class.pp-stat--active]="statusFilter() === 'BROUILLON'">
+          <span class="pp-stat__num">{{ stats.brouillon }}</span>
+          <span class="pp-stat__lbl">Brouillons</span>
+        </div>
+        <div class="pp-stat pp-stat--pause" (click)="statusFilter.set('EN_PAUSE')" [class.pp-stat--active]="statusFilter() === 'EN_PAUSE'">
+          <span class="pp-stat__num">{{ stats.enPause }}</span>
+          <span class="pp-stat__lbl">En pause</span>
+        </div>
+      </div>
+    }
+  </header>
+
+  <!-- ══ BARRE DE FILTRES ══════════════════════════════════════════ -->
+  <section class="pp-toolbar wb-card">
+    <div class="pp-search-wrap">
+      <svg class="pp-search-icon" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        class="pp-search-input"
+        type="search"
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+        placeholder="Rechercher par code, intitulé, chef de projet…"
+        autocomplete="off"
+        aria-label="Recherche"
+      />
+    </div>
+    <div class="pp-chips" role="group" aria-label="Filtrer par statut">
+      <button class="pp-chip" [class.pp-chip--active]="statusFilter() === 'ALL'" (click)="statusFilter.set('ALL')">Tous</button>
+      <button class="pp-chip pp-chip--run" [class.pp-chip--active]="statusFilter() === 'EN_COURS'" (click)="statusFilter.set('EN_COURS')">En cours</button>
+      <button class="pp-chip pp-chip--pause" [class.pp-chip--active]="statusFilter() === 'EN_PAUSE'" (click)="statusFilter.set('EN_PAUSE')">En pause</button>
+      <button class="pp-chip pp-chip--done" [class.pp-chip--active]="statusFilter() === 'TERMINE'" (click)="statusFilter.set('TERMINE')">Terminé</button>
+      <button class="pp-chip pp-chip--draft" [class.pp-chip--active]="statusFilter() === 'BROUILLON'" (click)="statusFilter.set('BROUILLON')">Brouillon</button>
+      <button class="pp-chip pp-chip--cancel" [class.pp-chip--active]="statusFilter() === 'ANNULE'" (click)="statusFilter.set('ANNULE')">Annulé</button>
+    </div>
+  </section>
+
+  <!-- ══ CONTENU ══════════════════════════════════════════════════ -->
+  @if (loading()) {
+    <div class="pp-loading" aria-busy="true">
+      <div class="wb-spinner"></div>
+      <p>Chargement du portefeuille projets…</p>
+    </div>
+  } @else if (loadError()) {
+    <div class="pp-error wb-card wb-card-pad">
+      <p class="pp-error__msg">{{ loadError() }}</p>
+      <button class="btn btn--secondary" type="button" (click)="reload()">Réessayer</button>
+    </div>
+  } @else {
+    <div class="pp-grid" role="list">
+
+      @for (p of filtered(); track p.id) {
+        <article
+          class="pc"
+          [class]="'pc pc--' + statusKey(p.status)"
+          role="listitem"
+          tabindex="0"
+          (click)="openCard(p)"
+          (keyup.enter)="openCard(p)"
+          [attr.aria-label]="p.name"
+        >
+          <!-- Barre latérale couleur statut -->
+          <div class="pc__accent-bar" aria-hidden="true"></div>
+
+          <div class="pc__body">
+            <!-- Top : code + statut -->
+            <div class="pc__top">
+              <span class="pc__code">{{ p.code }}</span>
+              <span class="pc__status-badge pc__status-badge--{{ statusKey(p.status) }}">
+                {{ statusLabel(p.status) }}
+              </span>
+            </div>
+
+            <!-- Domaine métier -->
+            @if (p.domain) {
+              <div class="pc__domain">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/>
+                </svg>
+                {{ domainLabel(p.domain) }}
+              </div>
+            }
+
+            <!-- Titre -->
+            <h2 class="pc__title">{{ p.name }}</h2>
+
+            <!-- Description -->
+            <p class="pc__desc">{{ p.description || '— Aucune description —' }}</p>
+
+            <!-- Avancement -->
+            <div class="pc__progress">
+              <div class="pc__progress-row">
+                <span class="pc__progress-lbl">Avancement</span>
+                <strong class="pc__progress-pct">{{ p.progressPercent }}&thinsp;%</strong>
+              </div>
+              <div class="pc__bar" aria-hidden="true">
+                <div class="pc__bar-fill" [style.width.%]="p.progressPercent"></div>
+              </div>
+            </div>
+
+            <!-- Dates -->
+            <div class="pc__dates">
+              <div class="pc__date-item">
+                <span class="pc__date-lbl">Début prévu</span>
+                <span class="pc__date-val">{{ p.plannedStartDate | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <svg class="pc__date-arrow" aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+              </svg>
+              <div class="pc__date-item">
+                <span class="pc__date-lbl">Fin prévue</span>
+                <span class="pc__date-val">{{ p.plannedEndDate ? (p.plannedEndDate | date:'dd/MM/yyyy') : '—' }}</span>
+              </div>
+            </div>
+
+            <!-- Séparateur -->
+            <div class="pc__divider" aria-hidden="true"></div>
+
+            <!-- Équipe -->
+            <div class="pc__team">
+              <div class="pc__team-cp">
+                @if (p.chefProjet) {
+                  <div class="pc__avatar">{{ initial(p.chefProjet.username) }}</div>
+                  <div class="pc__team-info">
+                    <span class="pc__team-name">{{ p.chefProjet.username }}</span>
+                    <span class="pc__team-role">Chef de projet</span>
+                  </div>
+                } @else {
+                  <div class="pc__avatar pc__avatar--empty">—</div>
+                  <div class="pc__team-info">
+                    <span class="pc__team-name pc__team-name--muted">Non affecté</span>
+                    <span class="pc__team-role">Chef de projet</span>
+                  </div>
+                }
+              </div>
+              <div class="pc__team-count">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span>{{ p.members.length }}</span>
+              </div>
+            </div>
+
+            <!-- Badge rôle sur la carte -->
+            @if (isElevated() && p.chefProjet) {
+              <div class="pc__unlock-badge" [class.pc__unlock-badge--on]="p.cpEditingUnlocked">
+                @if (p.cpEditingUnlocked) { Saisie CP active } @else { Saisie CP en attente }
+              </div>
+            }
+            @if (isChefProjetOf(p) && !isElevated()) {
+              <div class="pc__unlock-badge" [class.pc__unlock-badge--on]="p.cpEditingUnlocked">
+                @if (p.cpEditingUnlocked) { Saisie débloquée } @else { En attente PMO }
+              </div>
+            }
+            @if (isParticipantOf(p)) {
+              <div class="pc__participant-badge">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                </svg>
+                Participant
+              </div>
+            }
+
+            <!-- Actions -->
+            <div class="pc__actions" (click)="$event.stopPropagation()">
+              <button class="pc__btn pc__btn--view" type="button" (click)="goToPlanning(p, $event)">
+                Planification &amp; Avancement
+              </button>
+              @if (canEdit(p)) {
+                <button class="pc__btn pc__btn--edit" type="button" (click)="openEdit(p, $event)">
+                  Modifier
+                </button>
+              } @else {
+                <button class="pc__btn pc__btn--view" type="button" (click)="openView(p, $event)">
+                  Consulter
+                </button>
+              }
+              @if (canDelete()) {
+                <button class="pc__btn pc__btn--del" type="button" (click)="confirmDelete(p, $event)">
+                  Supprimer
+                </button>
+              }
+            </div>
+          </div>
+        </article>
+      }
+
+      @empty {
+        <div class="pp-empty">
+          <div class="pp-empty__icon" aria-hidden="true">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.35">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h3 class="pp-empty__title">Aucune fiche trouvée</h3>
+          <p class="pp-empty__sub">Modifiez vos filtres ou créez une nouvelle fiche si vous en avez le droit.</p>
+        </div>
+      }
+
+    </div>
+  }
+</div>

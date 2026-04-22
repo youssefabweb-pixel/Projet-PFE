@@ -1,0 +1,69 @@
+@use './wifak-design-system.scss';
+
+@use 'ngx-toastr/toastr';
+
+@import '@angular/cdk/overlay-prebuilt.css';
+
+@import url('assets/sneat/loader.css');
+
+/* Toastr — alignement marque */
+#toast-container > div {
+  border-radius: var(--radius-md, 0.75rem);
+  box-shadow: var(--shadow-lg, 0 16px 48px rgba(0, 48, 135, 0.12));
+  opacity: 1;
+}
+
+#toast-container > .toast-success {
+  background-image: none !important;
+  background-color: var(--success) !important;
+}
+
+#toast-container > .toast-error {
+  background-image: none !important;
+  background-color: var(--accent) !important;
+}
+
+#toast-container > .toast-info {
+  background-image: none !important;
+  background-color: var(--primary) !important;
+}
+
+#toast-container > .toast-warning {
+  background-image: none !important;
+  background-color: var(--warning) !important;
+}
+
+/* SweetAlert2 */
+.swal2-popup {
+  border-radius: var(--radius-3xl) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-lg) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.swal2-styled.swal2-confirm {
+  background: linear-gradient(180deg, var(--primary-light), var(--primary)) !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: 600 !important;
+}
+
+.swal2-styled.swal2-cancel {
+  background: var(--neutral-100) !important;
+  color: var(--neutral-800) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+}
+
+.swal2-icon.swal2-warning {
+  border-color: var(--warning) !important;
+  color: var(--warning) !important;
+}
+
+.wb-overlay-backdrop {
+  background: rgba(10, 22, 40, 0.25);
+}
+
+* {
+  box-sizing: border-box;
+}
+

@@ -1,0 +1,516 @@
+<div class="psd" role="dialog" aria-labelledby="psd-title" aria-modal="true">
+
+  <!-- ══ EN-TÊTE ════════════════════════════════════════════════════ -->
+  <div class="psd__head">
+    <div class="psd__head-meta">
+      @if (dialogData.project) {
+        <span class="psd__code-chip">{{ dialogData.project.code }}</span>
+        <span class="psd__status-chip psd__status-chip--{{ statusKey(dialogData.project.status) }}">
+          {{ statusLabel(dialogData.project.status) }}
+        </span>
+      } @else {
+        <span class="psd__new-tag">Nouveau projet</span>
+      }
+    </div>
+    <div class="psd__head-main">
+      <h2 id="psd-title" class="psd__head-title">{{ title }}</h2>
+      @if (dialogData.project) {
+        <p class="psd__head-sub">
+          Créé par <strong>{{ dialogData.project.createdBy.username }}</strong>
+          ({{ roleLabel(dialogData.project.createdBy.role) }})
+          &nbsp;·&nbsp;{{ dialogData.project.createdAt | date:'dd/MM/yyyy' }}
+        </p>
+      }
+    </div>
+    <button class="psd__close" type="button" (click)="close(false)" aria-label="Fermer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- ══ BANDEAU RÔLE ═══════════════════════════════════════════════ -->
+
+  <!-- Chef de projet assigné — saisie verrouillée -->
+  @if (showLockedNotice) {
+    <div class="psd__notice psd__notice--locked">
+      <div class="psd__notice-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div>
+        <strong>Saisie non activée</strong>
+        <p>Le PMO n'a pas encore débloqué les droits de saisie pour ce projet. Contactez votre responsable PMO.</p>
+      </div>
+    </div>
+  }
+
+  <!-- Chef de projet assigné — saisie débloquée -->
+  @if (showUnlockedBadge) {
+    <div class="psd__notice psd__notice--success">
+      <div class="psd__notice-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div>
+        <strong>Saisie débloquée par le PMO</strong>
+        <p>Vous pouvez mettre à jour le statut, l'avancement et les informations du projet.</p>
+      </div>
+    </div>
+  }
+
+  <!-- Participant (METIER / DEVELOPPEMENT) — lecture seule -->
+  @if (showParticipantNotice) {
+    <div class="psd__notice psd__notice--info">
+      <div class="psd__notice-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div>
+        <strong>Accès participant</strong>
+        <p>Vous consultez cette fiche en lecture seule. Seul le MANAGER peut modifier les informations du projet.</p>
+      </div>
+    </div>
+  }
+
+  <!-- ══ FORMULAIRE ═════════════════════════════════════════════════ -->
+  <form id="psd-form" class="psd__body" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+
+    <!-- ── Section : Identification ─────────────────────────────── -->
+    <div class="psd__section" [class.psd__section--dimmed]="identificationLocked">
+      <div class="psd__section-hdr">
+        <span class="psd__section-dot psd__section-dot--blue"></span>
+        <h3 class="psd__section-title">Identification</h3>
+      </div>
+
+      <div class="psd__grid2">
+
+        <div class="psd__field">
+          <label class="psd__lbl">
+            Code projet <span class="psd__req">*</span>
+            @if (!canEditCode && dialogData.mode !== 'view') {
+              <span class="psd__field-tag">PMO uniquement</span>
+            }
+          </label>
+          <input
+            class="wb-input"
+            formControlName="code"
+            autocomplete="off"
+            placeholder="ex: PROJ-2025-001"
+            [class.wb-input--readonly]="!canEditCode"
+          />
+          @if (form.controls.code.touched && form.controls.code.errors?.['required']) {
+            <span class="psd__err">Le code projet est obligatoire.</span>
+          }
+          @if (form.controls.code.touched && form.controls.code.errors?.['maxlength']) {
+            <span class="psd__err">64 caractères maximum.</span>
+          }
+        </div>
+
+        <div class="psd__field">
+          <label class="psd__lbl">Intitulé du projet <span class="psd__req">*</span></label>
+          <input
+            class="wb-input"
+            formControlName="name"
+            autocomplete="off"
+            placeholder="Nom complet du projet"
+          />
+          @if (form.controls.name.touched && form.controls.name.errors?.['required']) {
+            <span class="psd__err">L'intitulé est obligatoire.</span>
+          }
+        </div>
+
+      </div>
+
+      <div class="psd__grid2">
+        <div class="psd__field">
+          <label class="psd__lbl">
+            Domaine métier <span class="psd__req">*</span>
+          </label>
+          <select class="wb-input" formControlName="domain">
+            @for (d of domainOptions; track d) {
+              <option [value]="d">{{ domainLabel(d) }}</option>
+            }
+          </select>
+          @if (form.controls.domain.touched && form.controls.domain.errors?.['required']) {
+            <span class="psd__err">Le domaine est obligatoire.</span>
+          }
+        </div>
+
+        <div class="psd__field">
+          <label class="psd__lbl">Description</label>
+          <textarea
+            class="wb-input psd__textarea"
+            rows="3"
+            formControlName="description"
+            placeholder="Objectif, contexte, périmètre du projet…"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section : Équipe ──────────────────────────────────────── -->
+    @if (dialogData.project || isPortfolioManager) {
+      <div class="psd__section">
+        <div class="psd__section-hdr">
+          <span class="psd__section-dot psd__section-dot--purple"></span>
+          <h3 class="psd__section-title">Équipe &amp; pilotage</h3>
+        </div>
+
+        @if (canEditTeam) {
+          <!-- PMO/Admin : formulaire équipe -->
+          @if (usersLoading()) {
+            <p class="psd__muted">Chargement des utilisateurs…</p>
+          } @else {
+
+            <!-- Sélection Chef de Projet (Searchable + Collapsible) -->
+            <div class="psd__field">
+              <label class="psd__lbl">Chef de projet (CP)</label>
+              <div class="psd__lookup-header" (click)="chefLookupExpanded.set(!chefLookupExpanded())">
+                <span class="psd__lookup-value" *ngIf="form.controls.chefProjetId.value !== null; else noChef">
+                  {{ selectedChefName }} — {{ selectedChefEmail }}
+                </span>
+                <ng-template #noChef>
+                  <span class="psd__lookup-placeholder">— Non affecté —</span>
+                </ng-template>
+                <svg [class.psd__chevron--open]="chefLookupExpanded()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+              
+              <div class="psd__lookup" *ngIf="chefLookupExpanded()">
+                <div class="psd__lookup-search">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" placeholder="Rechercher un chef..." (input)="searchChef.set($any($event.target).value)" [value]="searchChef()" />
+                </div>
+                <div class="psd__lookup-list">
+                  <div class="psd__lookup-item" 
+                       [class.psd__lookup-item--active]="form.controls.chefProjetId.value === null"
+                       (click)="selectChef(0)">
+                    <div class="psd__lookup-avatar psd__lookup-avatar--none">—</div>
+                    <div class="psd__lookup-info"><strong>Non affecté</strong></div>
+                  </div>
+                  @for (u of filteredChefOptions(); track u.id) {
+                    <div class="psd__lookup-item" 
+                         [class.psd__lookup-item--active]="form.controls.chefProjetId.value === u.id"
+                         (click)="selectChef(u.id)">
+                      <div class="psd__lookup-avatar">{{ initial(u.username) }}</div>
+                      <div class="psd__lookup-info">
+                        <strong>{{ u.username }}</strong>
+                        <small>{{ roleLabel(u.role) }}</small>
+                      </div>
+                      @if (form.controls.chefProjetId.value === u.id) {
+                        <svg class="psd__lookup-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+
+            <!-- Toggle déblocage CP -->
+            @if (form.controls.chefProjetId.value) {
+              <div class="psd__toggle-row">
+                <div class="psd__toggle-info">
+                  <span class="psd__toggle-label">Droits de saisie CP</span>
+                  <span class="psd__toggle-hint">
+                    Autorise le chef de projet à modifier le statut, l'avancement et la description.
+                  </span>
+                </div>
+                <label class="psd__toggle">
+                  <input type="checkbox" formControlName="cpEditingUnlocked" />
+                  <span class="psd__toggle-track"></span>
+                  <span class="psd__toggle-text" [class.psd__toggle-text--on]="form.controls.cpEditingUnlocked.value">
+                    {{ form.controls.cpEditingUnlocked.value ? 'Débloqué' : 'Verrouillé' }}
+                  </span>
+                </label>
+              </div>
+            }
+
+            <!-- Participants (Searchable + Collapsible Checklist) -->
+            <div class="psd__field">
+              <label class="psd__lbl">Participants au projet</label>
+              <div class="psd__lookup-header" (click)="membersLookupExpanded.set(!membersLookupExpanded())">
+                <span class="psd__lookup-value" *ngIf="selectedMembersCount > 0; else noMembers">
+                  {{ selectedMembersCount }} participant(s) sélectionné(s)
+                </span>
+                <ng-template #noMembers>
+                  <span class="psd__lookup-placeholder">Aucun participant</span>
+                </ng-template>
+                <svg [class.psd__chevron--open]="membersLookupExpanded()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+
+              <div class="psd__lookup" *ngIf="membersLookupExpanded()">
+                <div class="psd__lookup-search">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" placeholder="Rechercher des participants..." (input)="searchMembers.set($any($event.target).value)" [value]="searchMembers()" />
+                </div>
+                <div class="psd__lookup-list">
+                  @for (u of filteredMemberOptions(); track u.id) {
+                    <div class="psd__lookup-item" 
+                         [class.psd__lookup-item--active]="isMemberChecked(u.id)"
+                         (click)="toggleMember(u.id)">
+                      <div class="psd__lookup-avatar">{{ initial(u.username) }}</div>
+                      <div class="psd__lookup-info">
+                        <strong>{{ u.username }}</strong>
+                        <small>{{ roleLabel(u.role) }}</small>
+                      </div>
+                      @if (isMemberChecked(u.id)) {
+                        <svg class="psd__lookup-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      }
+                    </div>
+                  }
+                  @empty {
+                    <p class="psd__muted psd__center">Aucun utilisateur trouvé.</p>
+                  }
+                </div>
+              </div>
+            </div>
+
+          }
+        } @else if (isChefActive) {
+          <!-- Chef actif : gestion des participants uniquement -->
+          @if (usersLoading()) {
+            <p class="psd__muted">Chargement des utilisateurs…</p>
+          } @else {
+            <div class="psd__field">
+              <label class="psd__lbl">Participants au projet</label>
+              <div class="psd__lookup-header" (click)="membersLookupExpanded.set(!membersLookupExpanded())">
+                <span class="psd__lookup-value" *ngIf="selectedMembersCount > 0; else noMembersChef">
+                  {{ selectedMembersCount }} participant(s) sélectionné(s)
+                </span>
+                <ng-template #noMembersChef>
+                  <span class="psd__lookup-placeholder">Aucun participant</span>
+                </ng-template>
+                <svg [class.psd__chevron--open]="membersLookupExpanded()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+
+              <div class="psd__lookup" *ngIf="membersLookupExpanded()">
+                <div class="psd__lookup-search">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" placeholder="Rechercher des participants..." (input)="searchMembers.set($any($event.target).value)" [value]="searchMembers()" />
+                </div>
+                <div class="psd__lookup-list">
+                  @for (u of filteredMemberOptions(); track u.id) {
+                    <div class="psd__lookup-item" 
+                         [class.psd__lookup-item--active]="isMemberChecked(u.id)"
+                         (click)="toggleMember(u.id)">
+                      <div class="psd__lookup-avatar">{{ initial(u.username) }}</div>
+                      <div class="psd__lookup-info">
+                        <strong>{{ u.username }}</strong>
+                        <small>{{ roleLabel(u.role) }}</small>
+                      </div>
+                      @if (isMemberChecked(u.id)) {
+                        <svg class="psd__lookup-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      }
+                    </div>
+                  }
+                  @empty {
+                    <p class="psd__muted psd__center">Aucun utilisateur trouvé.</p>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        } @else {
+          <!-- Lecture seule : affichage équipe -->
+          <div class="psd__team-view">
+
+            <div class="psd__team-cp-wrap">
+              <span class="psd__team-section-lbl">Chef de projet</span>
+              @if (dialogData.project?.chefProjet; as cp) {
+                <div class="psd__team-person">
+                  <div class="psd__team-avatar">{{ initial(cp.username) }}</div>
+                  <div class="psd__team-person-info">
+                    <span class="psd__team-person-name">{{ cp.username }}</span>
+                    <span class="psd__team-person-email">{{ cp.email }}</span>
+                  </div>
+                  @if (dialogData.project?.cpEditingUnlocked) {
+                    <span class="psd__unlock-dot psd__unlock-dot--on">Saisie active</span>
+                  } @else {
+                    <span class="psd__unlock-dot">Saisie verrouillée</span>
+                  }
+                </div>
+              } @else {
+                <span class="psd__muted">Non affecté</span>
+              }
+            </div>
+
+            <div class="psd__team-members-wrap">
+              <span class="psd__team-section-lbl">
+                Participants ({{ dialogData.project?.members?.length ?? 0 }})
+              </span>
+              <div class="psd__members-chips">
+                @for (m of (dialogData.project?.members ?? []); track m.id) {
+                  <span class="psd__member-chip">
+                    <span class="psd__member-chip-av">{{ initial(m.username) }}</span>
+                    <span class="psd__member-chip-name">{{ m.username }}</span>
+                    <span class="psd__member-chip-role">{{ roleLabel(m.role) }}</span>
+                  </span>
+                }
+                @empty {
+                  <span class="psd__muted">Aucun participant</span>
+                }
+              </div>
+            </div>
+
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ── Section : Livrables ──────────────────────────────────── -->
+    <div class="psd__section" [class.psd__section--dimmed]="livrableLocked">
+      <div class="psd__section-hdr">
+        <span class="psd__section-dot psd__section-dot--amber"></span>
+        <h3 class="psd__section-title">Espace des livrables</h3>
+        @if (canEditDeliverables) {
+          <button type="button" class="psd__add-deliv" (click)="addDeliverable()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Ajouter un livrable
+          </button>
+        }
+      </div>
+
+      @if (deliverables.length === 0) {
+        <p class="psd__muted psd__deliv-empty">Aucun livrable défini pour le moment.</p>
+      } @else {
+        <div class="psd__deliv-list" formArrayName="deliverables">
+          @for (group of deliverables.controls; track $index; let i = $index) {
+            <div class="psd__deliv-card" [formGroupName]="i" [class.psd__deliv-card--done]="group.get('done')?.value">
+              <div class="psd__deliv-row">
+                <label class="psd__deliv-check">
+                  <input type="checkbox" formControlName="done" [disabled]="!canEditDeliverables" />
+                  <span class="psd__deliv-check-box" aria-hidden="true">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                </label>
+                <div class="psd__deliv-main">
+                  <input
+                    class="wb-input psd__deliv-title"
+                    formControlName="title"
+                    placeholder="Intitulé du livrable"
+                  />
+                  @if (group.get('title')?.touched && group.get('title')?.errors?.['required']) {
+                    <span class="psd__err">L'intitulé est obligatoire.</span>
+                  }
+                </div>
+                <div class="psd__deliv-due">
+                  <input class="wb-input" type="date" formControlName="dueDate" />
+                </div>
+                @if (canEditDeliverables) {
+                  <button type="button" class="psd__deliv-del" (click)="removeDeliverable(i)" aria-label="Supprimer">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                  </button>
+                }
+              </div>
+              <textarea
+                class="wb-input psd__textarea psd__deliv-desc"
+                rows="2"
+                formControlName="description"
+                placeholder="Détails, critères d'acceptation…"
+              ></textarea>
+
+              <!-- Documents attachés -->
+              @let delivId = group.get('id')?.value;
+              @let currentProjectDeliv = findProjectDeliverable(delivId);
+
+              @if (currentProjectDeliv?.documents?.length || canEditDeliverables) {
+                <div class="psd__deliv-docs">
+                  <div class="psd__docs-list">
+                    @for (doc of currentProjectDeliv?.documents; track doc.id) {
+                      <div class="psd__doc-item">
+                        <span class="psd__doc-name" (click)="downloadDocument(doc.id, doc.filename)" [title]="doc.filename">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                          {{ doc.filename }}
+                        </span>
+                        @if (canEditDeliverables) {
+                          <button type="button" class="psd__doc-del" (click)="deleteDocument(doc.id)" title="Supprimer">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  @if (canEditDeliverables && delivId) {
+                    <div class="psd__doc-upload">
+                      <label class="psd__upload-btn">
+                        <input type="file" (change)="onFileSelected($event, delivId)" hidden />
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Importer un fichier
+                      </label>
+                    </div>
+                  } @else if (canEditDeliverables && !delivId) {
+                    <div class="psd__doc-upload psd__doc-upload--disabled">
+                      <span class="psd__upload-hint">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        Ce livrable doit etre enregistre avant depot de document.
+                      </span>
+                      <button type="button" class="psd__upload-btn" (click)="saveForDocumentUpload()">
+                        Enregistrer maintenant
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- ── Section : Traçabilité (projets existants) ──────────── -->
+    @if (dialogData.project) {
+      <div class="psd__section psd__section--trace">
+        <div class="psd__section-hdr">
+          <span class="psd__section-dot psd__section-dot--gray"></span>
+          <h3 class="psd__section-title">Traçabilité</h3>
+        </div>
+        <div class="psd__trace-grid">
+          <div class="psd__trace-item">
+            <span class="psd__trace-lbl">Créé par</span>
+            <span class="psd__trace-val">
+              {{ dialogData.project.createdBy.username }}
+              <em class="psd__trace-role">({{ roleLabel(dialogData.project.createdBy.role) }})</em>
+            </span>
+          </div>
+          <div class="psd__trace-item">
+            <span class="psd__trace-lbl">Date de création</span>
+            <span class="psd__trace-val">{{ dialogData.project.createdAt | date:'dd/MM/yyyy à HH:mm' }}</span>
+          </div>
+          <div class="psd__trace-item">
+            <span class="psd__trace-lbl">Dernière modification</span>
+            <span class="psd__trace-val">{{ dialogData.project.updatedAt | date:'dd/MM/yyyy à HH:mm' }}</span>
+          </div>
+        </div>
+      </div>
+    }
+
+  </form>
+
+  <!-- ── Pied de page (toujours visible) ─────────────────────────── -->
+  <footer class="psd__footer">
+    <button type="button" class="btn btn--ghost" (click)="close(false)">Fermer</button>
+    @if (!isReadOnly) {
+      <button
+        type="submit"
+        form="psd-form"
+        class="btn btn--accent"
+        [disabled]="saving() || form.invalid"
+      >
+        @if (saving()) {
+          <span class="psd__saving-dot"></span> Enregistrement…
+        } @else {
+          {{ dialogData.mode === 'create' ? 'Créer la fiche' : 'Enregistrer' }}
+        }
+      </button>
+    }
+  </footer>
+
+</div>
