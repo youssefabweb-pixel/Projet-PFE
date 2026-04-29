@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -26,13 +27,20 @@ public class TaskRequest {
 
     @Min(0)
     @Max(100)
-    private int progressPercent;
+    private Integer progressPercent;
 
     private Long assigneeId;
 
     private String priority;
 
     private Long dependencyTaskId;
+
+    private List<Long> dependencyTaskIds;
+
+    private String deliverableUrl;
+
+    @Size(max = 500)
+    private String deliverableLabel;
 
     private String status;
 

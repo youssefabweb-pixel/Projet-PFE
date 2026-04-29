@@ -10,6 +10,9 @@
     @if (canSeeProjectsNav()) {
       <a routerLink="/projects" routerLinkActive="is-active">Fiches projets</a>
     }
+    @if (canSeePlanningNav()) {
+      <a routerLink="/tasks" routerLinkActive="is-active">Planification & Avancement</a>
+    }
     @if (canSeeUsersNav()) {
       <a routerLink="/users" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: false }">Utilisateurs</a>
     }
@@ -110,3 +113,4 @@
     <button type="button" class="btn btn--ghost btn--compact" (click)="logout()">Déconnexion</button>
   </div>
 </header>
+

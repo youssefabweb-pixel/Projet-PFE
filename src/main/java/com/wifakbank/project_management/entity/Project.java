@@ -90,6 +90,21 @@ public class Project {
     @Column(name = "cp_editing_unlocked", nullable = false)
     private boolean cpEditingUnlocked = false;
 
+    /**
+     * Cycle de vie du macro-planning : DRAFT → SOUMIS → VALIDE.
+     * null = projet legacy (comportement identique à DRAFT).
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "macro_planning", length = 16)
+    private MacroPlanningStatus macroPlanning;
+
+    /**
+     * Archivage logique (soft delete) ; explicitement mappé pour éviter les insertions SQL
+     * sans valeur sur les bases où la colonne archived existe en NOT NULL.
+     */
+    @Column(name = "archived", nullable = false)
+    private boolean archived = false;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "project_members",

@@ -6,7 +6,6 @@ import com.wifakbank.project_management.entity.Role;
 import com.wifakbank.project_management.dto.response.UserResponse;
 import com.wifakbank.project_management.entity.User;
 import com.wifakbank.project_management.exception.AppException;
-import com.wifakbank.project_management.mapper.UserMapper;
 import com.wifakbank.project_management.repository.ProjectRepository;
 import com.wifakbank.project_management.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,12 +27,13 @@ public class UserAdminService {
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final PasswordEncoder passwordEncoder;
-    private final UserMapper userMapper;
 
     @Transactional(readOnly = true)
     public List<UserResponse> findAll() {
-        return userRepository.findAll().stream()
-                .map(userMapper::toResponse)
+        List<User> users = userRepository.findAll();
+        Map<Long, String> managerUsernamesById = resolveManagerUsernames(users);
+        return users.stream()
+                .map(user -> toResponseWithCreatorUsername(user, managerUsernamesById))
                 .sorted((a, b) -> Long.compare(a.getId(), b.getId()))
                 .toList();
     }
@@ -39,7 +42,7 @@ public class UserAdminService {
     public UserResponse findById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
-        return userMapper.toResponse(user);
+        return toResponseWithCreatorUsername(user, null);
     }
 
     @Transactional(readOnly = true)
@@ -64,10 +67,10 @@ public class UserAdminService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
         user.setEnabled(request.isEnabled());
-        if (manager != null && manager.getRole() == Role.MANAGER) {
+        if (manager != null) {
             user.setCreatedByManagerId(manager.getId());
         }
-        return userMapper.toResponse(userRepository.save(user));
+        return toResponseWithCreatorUsername(userRepository.save(user), null);
     }
 
     @Transactional
@@ -88,7 +91,7 @@ public class UserAdminService {
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
-        return userMapper.toResponse(userRepository.save(user));
+        return toResponseWithCreatorUsername(userRepository.save(user), null);
     }
 
     @Transactional
@@ -116,7 +119,7 @@ public class UserAdminService {
                 .orElseThrow(() -> new AppException("USER_NOT_FOUND", "User not found", HttpStatus.NOT_FOUND));
         if (actor.getRole() == Role.ADMINISTRATEUR) {
             user.setEnabled(enabled);
-            return userMapper.toResponse(userRepository.save(user));
+            return toResponseWithCreatorUsername(userRepository.save(user), null);
         }
         if (actor.getRole() != Role.MANAGER) {
             throw new AppException("FORBIDDEN", "Insufficient role to change user status", HttpStatus.FORBIDDEN);
@@ -125,7 +128,7 @@ public class UserAdminService {
             throw new AppException("FORBIDDEN", "You can only activate/deactivate users you created", HttpStatus.FORBIDDEN);
         }
         user.setEnabled(enabled);
-        return userMapper.toResponse(userRepository.save(user));
+        return toResponseWithCreatorUsername(userRepository.save(user), null);
     }
 
     /**
@@ -151,5 +154,38 @@ public class UserAdminService {
         return projectRepository.existsByCreatedBy_Id(userId)
                 || projectRepository.existsByChefProjet_Id(userId)
                 || projectRepository.existsByMembers_Id(userId);
+    }
+
+    private UserResponse toResponseWithCreatorUsername(User user, Map<Long, String> managerUsernamesById) {
+        String creatorUsername = null;
+        if (user.getCreatedByManagerId() != null) {
+            creatorUsername = managerUsernamesById != null
+                    ? managerUsernamesById.get(user.getCreatedByManagerId())
+                    : userRepository.findById(user.getCreatedByManagerId()).map(User::getUsername).orElse(null);
+        }
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .enabled(user.isEnabled())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .lastLoginAt(user.getLastLoginAt())
+                .createdByManagerId(user.getCreatedByManagerId())
+                .createdByManagerUsername(creatorUsername)
+                .build();
+    }
+
+    private Map<Long, String> resolveManagerUsernames(List<User> users) {
+        Set<Long> managerIds = users.stream()
+                .map(User::getCreatedByManagerId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        if (managerIds.isEmpty()) {
+            return Map.of();
+        }
+        return userRepository.findAllById(managerIds).stream()
+                .collect(Collectors.toMap(User::getId, User::getUsername, (a, b) -> a));
     }
 }

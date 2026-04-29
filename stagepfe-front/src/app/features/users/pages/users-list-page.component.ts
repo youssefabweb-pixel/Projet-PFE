@@ -395,6 +395,10 @@ export class UsersListPageComponent {
     return 'role--' + key;
   }
 
+  protected displayRole(role: string): string {
+    return role.toUpperCase() === 'MANAGER' ? 'PMO' : role;
+  }
+
   private rebuildRowPerms(): void {
     this.rowPerms.clear();
     const role = this.authService.getRole();

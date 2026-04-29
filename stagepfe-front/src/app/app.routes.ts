@@ -30,7 +30,7 @@ export const routes: Routes = [
       },
       {
         path: 'users',
-        canActivate: [roleGuard(['MANAGER', 'ADMINISTRATEUR'])],
+        canActivate: [roleGuard(['ADMINISTRATEUR'])],
         loadComponent: () =>
           import('./features/users/pages/users-list-page.component').then((m) => m.UsersListPageComponent),
       },

@@ -1,5 +1,8 @@
 export type ProjectStatus = 'BROUILLON' | 'EN_COURS' | 'EN_PAUSE' | 'TERMINE' | 'ANNULE';
 
+/** Cycle de vie du macro-planning : DRAFT → SOUMIS → VALIDE. */
+export type MacroPlanningStatus = 'DRAFT' | 'SOUMIS' | 'VALIDE';
+
 export type MilestoneStatus = 'NON_DEMARRE' | 'EN_COURS' | 'TERMINE' | 'EN_RETARD' | 'BLOQUE';
 
 export type ProjectDomain =
@@ -79,6 +82,16 @@ export interface DeliverableInput {
   done: boolean;
 }
 
+export interface TaskDocumentEntry {
+  id: number;
+  taskId: number;
+  filename: string;
+  contentType: string;
+  size: number;
+  uploadedAt: string;
+  downloadUrl: string;
+}
+
 export interface Task {
   id: number;
   title: string;
@@ -88,9 +101,15 @@ export interface Task {
   endDate?: string;
   progressPercent: number;
   assignee?: UserSummary | null;
+  priority?: 'BASSE' | 'MOYENNE' | 'HAUTE' | 'CRITIQUE';
   dependencyTaskId?: number | null;
+  /** Multiple predecessors (planning / API étendu). */
+  dependencyTaskIds?: number[];
+  deliverableUrl?: string | null;
+  deliverableLabel?: string | null;
   justification?: string;
   actualEndDate?: string;
+  taskDocuments?: TaskDocumentEntry[];
 }
 
 export interface TaskInput {
@@ -101,9 +120,15 @@ export interface TaskInput {
   progressPercent: number;
   status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'DONE' | 'EN_RETARD' | 'BLOQUE';
   assigneeId?: number | null;
+  priority?: 'BASSE' | 'MOYENNE' | 'HAUTE' | 'CRITIQUE';
   dependencyTaskId?: number | null;
+  dependencyTaskIds?: number[];
+  deliverableUrl?: string | null;
+  deliverableLabel?: string | null;
   justification?: string;
   actualEndDate?: string;
+  /** File selected in the dialog to be uploaded after task save. */
+  pendingFile?: File;
 }
 
 export interface Milestone {
@@ -146,6 +171,8 @@ export interface Project {
   members: UserSummary[];
   deliverables: Deliverable[];
   cpEditingUnlocked: boolean;
+  /** Statut du cycle de validation du macro-planning. null = projet legacy (traité comme VALIDE). */
+  macroPlanning?: MacroPlanningStatus | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -176,5 +203,6 @@ export interface ProjectUpdatePayload {
   chefProjetId?: number | null;
   memberIds?: number[];
   cpEditingUnlocked?: boolean;
+  macroPlanning?: MacroPlanningStatus | null;
   deliverables?: DeliverableInput[];
 }

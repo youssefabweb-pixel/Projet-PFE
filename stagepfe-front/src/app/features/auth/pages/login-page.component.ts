@@ -33,7 +33,7 @@ export class LoginPageComponent {
       next: () => {
         this.loading = false;
         const r = this.authService.getRole();
-        if (r === 'MANAGER' || r === 'ADMINISTRATEUR') {
+        if (r === 'ADMINISTRATEUR') {
           void this.router.navigate(['/users']);
         } else if (r === 'MOA') {
           void this.router.navigate(['/tasks']);

@@ -4,7 +4,34 @@
 
 @import '@angular/cdk/overlay-prebuilt.css';
 
+/* Variables système Material (--mat-sys-*) : sans cela, datepicker / calendrier = fond transparent */
+@import '@angular/material/prebuilt-themes/azure-blue.css';
+
 @import url('assets/sneat/loader.css');
+
+/* Typo des surfaces Material alignée sur le design system (évite Roboto isolé sur le calendrier) */
+html {
+  --mat-sys-body-medium-font: var(--font-sans);
+  --mat-sys-body-small-font: var(--font-sans);
+  --mat-sys-title-small-font: var(--font-sans);
+  --mat-sys-title-medium-font: var(--font-sans);
+}
+
+/* Panneau calendrier au-dessus de la modale (même conteneur CDK, z-index identiques par défaut) */
+.cdk-overlay-pane:has(.mat-datepicker-content) {
+  z-index: 1201 !important;
+}
+
+.mat-datepicker-content {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay) !important;
+  overflow: hidden;
+}
+
+.mat-datepicker-content .mat-calendar {
+  font-family: var(--font-sans);
+}
 
 /* Toastr — alignement marque */
 #toast-container > div {
@@ -65,5 +92,117 @@
 
 * {
   box-sizing: border-box;
+}
+
+/* ── Dark mode : Angular Material overrides ─────────────────────────────── */
+
+html.dark,
+html[data-theme='dark'] {
+
+  /* Panels & overlays Material */
+  .mat-mdc-menu-panel,
+  .mat-mdc-select-panel,
+  .mat-mdc-autocomplete-panel {
+    background: var(--surface-elevated) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: var(--shadow-lg) !important;
+  }
+
+  .mat-mdc-option {
+    color: var(--neutral-800) !important;
+  }
+
+  .mat-mdc-option:hover,
+  .mat-mdc-option.mdc-list-item--selected {
+    background: var(--primary-muted) !important;
+    color: var(--primary-light) !important;
+  }
+
+  /* Expansion panels (jalons) */
+  .mat-expansion-panel {
+    background: var(--surface-elevated) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+  }
+
+  .mat-expansion-panel-header:hover {
+    background: var(--primary-muted) !important;
+  }
+
+  .mat-expansion-panel-header-title,
+  .mat-expansion-panel-header-description {
+    color: var(--neutral-800) !important;
+  }
+
+  /* Spinner Material */
+  .mat-mdc-progress-spinner circle {
+    stroke: var(--primary-light) !important;
+  }
+
+  /* Tooltip */
+  .mat-mdc-tooltip .mdc-tooltip__surface {
+    background: var(--surface-float) !important;
+    color: var(--neutral-800) !important;
+    border: 1px solid var(--border) !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Datepicker dark */
+  .mat-datepicker-content {
+    background: var(--surface-elevated) !important;
+    border-color: var(--border-strong) !important;
+  }
+
+  .mat-calendar-body-cell-content {
+    color: var(--neutral-800) !important;
+  }
+
+  .mat-calendar-body-selected {
+    background: var(--primary) !important;
+    color: #fff !important;
+  }
+
+  .mat-calendar-body-today:not(.mat-calendar-body-selected) {
+    border-color: var(--primary-light) !important;
+    color: var(--primary-light) !important;
+  }
+
+  .mat-calendar-arrow {
+    fill: var(--neutral-700) !important;
+  }
+
+  .mat-calendar-table-header,
+  .mat-calendar-body-label {
+    color: var(--neutral-500) !important;
+  }
+
+  /* Inputs Material */
+  .mat-mdc-form-field-focus-overlay {
+    background: var(--primary-muted) !important;
+  }
+
+  .mdc-text-field--filled {
+    background: var(--surface-elevated) !important;
+  }
+
+  /* Notification panel */
+  .notif-panel {
+    background: var(--surface-elevated);
+    border-color: var(--border-strong);
+  }
+
+  .notif-panel__head {
+    border-bottom-color: var(--border);
+  }
+
+  .notif-item--unread {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(59, 130, 246, 0.04));
+    border-color: rgba(59, 130, 246, 0.22);
+  }
+
+  /* Auth shell dark */
+  .auth-shell {
+    background: linear-gradient(160deg, var(--neutral-50) 0%, var(--surface) 40%, var(--neutral-100) 100%);
+  }
 }
 

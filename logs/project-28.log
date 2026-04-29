@@ -1,0 +1,6 @@
+[2026-04-29 11:10:40] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Projet cree : tawa [jdida]
+[2026-04-29 11:10:42] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Projet modifie : tawa [jdida]
+[2026-04-29 11:10:43] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Projet modifie : tawa [jdida]
+[2026-04-29 11:12:15] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 28 | DETAILS: Jalon cree : jj (id=18)
+[2026-04-29 11:12:32] USER: youssef.aboueb | ACTION: SUBMIT_PLANNING | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Planning soumis pour validation PMO : tawa
+[2026-04-29 11:18:50] USER: manager | ACTION: VALIDATE_PLANNING | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Planning validé par PMO : tawa

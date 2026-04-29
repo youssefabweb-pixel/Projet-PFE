@@ -24,6 +24,8 @@ public class ProjectResponse {
     private List<UserSummaryResponse> members;
     private List<DeliverableResponse> deliverables;
     private boolean cpEditingUnlocked;
+    /** Statut du cycle de validation du macro-planning. null = projet legacy (traité comme DRAFT). */
+    private String macroPlanning;
     private Instant createdAt;
     private Instant updatedAt;
 }

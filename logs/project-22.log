@@ -1,0 +1,4 @@
+[2026-04-27 15:10:56] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 22 | DETAILS: Projet cree : test moa [PRooj-12]
+[2026-04-27 15:18:43] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 22 | DETAILS: Projet modifie : test moa [PRooj-12]
+[2026-04-27 15:18:44] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 22 | DETAILS: Projet modifie : test moa [PRooj-12]
+[2026-04-27 15:39:51] USER: manager | ACTION: DELETE | ENTITY: PROJECT | PROJECT_ID: 22 | DETAILS: Projet supprime : test moa [PRooj-12]

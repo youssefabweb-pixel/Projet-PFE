@@ -48,12 +48,21 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("SELECT p FROM Project p WHERE p.id = :id")
     Optional<Project> findByIdWithAssociations(@Param("id") Long id);
 
+    /**
+     * Planning : charge associations + jalons. Ne pas join-fetch {@code milestones.tasks} ici :
+     * deux {@code List} en fetch join provoquent {@code MultipleBagFetchException} (HTTP 500).
+     * Les tâches sont chargées en lazy dans la même transaction {@code @Transactional(readOnly=true)}.
+     * <p>Note : charger {@code members} et {@code milestones} dans le même graph peut dupliquer
+     * les jalons en mémoire (produit cartésien SQL) ; {@link com.wifakbank.project_management.service.PlanningProgressService}
+     * les déduplique par id avant exposition API.
+     */
     @EntityGraph(attributePaths = {"chefProjet", "createdBy", "members", "milestones"})
-    @Query("SELECT p FROM Project p ORDER BY p.updatedAt DESC")
+    @Query("SELECT DISTINCT p FROM Project p ORDER BY p.updatedAt DESC")
     List<Project> findAllWithPlanning();
 
     @EntityGraph(attributePaths = {"chefProjet", "createdBy", "members", "milestones"})
-    List<Project> findByNameContainingIgnoreCaseOrderByUpdatedAtDesc(String name);
+    @Query("SELECT DISTINCT p FROM Project p WHERE p.id = :id")
+    Optional<Project> findByIdWithPlanningTree(@Param("id") Long id);
 
     boolean existsByCreatedBy_Id(Long userId);
 

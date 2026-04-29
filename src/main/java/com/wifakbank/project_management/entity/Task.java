@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "tasks")
@@ -50,6 +52,23 @@ public class Task {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "dependency_task_id")
     private Task dependencyTask;
+
+    /**
+     * Optional multiple predecessors (see {@code task_dependencies}). Legacy {@link #dependencyTask} remains
+     * for backward compatibility and is kept in sync when possible.
+     */
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "task_dependencies",
+            joinColumns = @JoinColumn(name = "task_id"),
+            inverseJoinColumns = @JoinColumn(name = "depends_on_task_id"))
+    private Set<Task> dependsOn = new HashSet<>();
+
+    @Column(name = "deliverable_url", length = 2000)
+    private String deliverableUrl;
+
+    @Column(name = "deliverable_label", length = 500)
+    private String deliverableLabel;
 
     @Column(length = 2000)
     private String justification;

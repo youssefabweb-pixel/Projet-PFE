@@ -62,17 +62,22 @@ export class AppTopbarComponent implements OnInit {
 
   /** Lien accueil : tous les rôles accèdent à la liste projets. */
   homeLink(): string {
-    return '/projects';
+    return this.auth.getRole() === 'ADMINISTRATEUR' ? '/users' : '/projects';
   }
 
   canSeeProjectsNav(): boolean {
     const r = this.auth.getRole();
-    return r !== null && PROJECT_NAV_ROLES.has(r);
+    return r !== null && r !== 'ADMINISTRATEUR' && PROJECT_NAV_ROLES.has(r);
   }
 
   canSeeUsersNav(): boolean {
     const r = this.auth.getRole();
-    return r === 'MANAGER' || r === 'ADMINISTRATEUR';
+    return r === 'ADMINISTRATEUR';
+  }
+
+  canSeePlanningNav(): boolean {
+    const r = this.auth.getRole();
+    return r !== null && r !== 'ADMINISTRATEUR';
   }
 
   notifIcon(type: string): string {
@@ -81,6 +86,15 @@ export class AppTopbarComponent implements OnInit {
         return '★';
       case 'PROJECT_MEMBER_ADDED':
         return '👥';
+      case 'PROJECT_COMPLETED':
+        return '✅';
+      case 'PROJECT_DELAYED':
+      case 'MILESTONE_DELAYED':
+        return '⏰';
+      case 'NEW_PROJECT_CREATED':
+        return '🆕';
+      case 'TASK_ASSIGNED':
+        return '📌';
       default:
         return '🔔';
     }
@@ -92,6 +106,16 @@ export class AppTopbarComponent implements OnInit {
         return 'Chef de projet';
       case 'PROJECT_MEMBER_ADDED':
         return 'Équipe projet';
+      case 'PROJECT_COMPLETED':
+        return 'Projet terminé';
+      case 'PROJECT_DELAYED':
+        return 'Projet en retard';
+      case 'MILESTONE_DELAYED':
+        return 'Jalon en retard';
+      case 'NEW_PROJECT_CREATED':
+        return 'Nouveau projet';
+      case 'TASK_ASSIGNED':
+        return 'Affectation tâche';
       default:
         return 'Notification';
     }

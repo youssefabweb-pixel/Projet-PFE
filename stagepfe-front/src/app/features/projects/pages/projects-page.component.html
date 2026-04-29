@@ -21,35 +21,45 @@
         </div>
       </div>
       @if (canCreate()) {
-        <button class="btn pp-btn-new" type="button" (click)="openCreate()">
-          <span class="pp-btn-new__plus" aria-hidden="true">+</span>
-          Nouvelle fiche
-        </button>
+        <div class="pp-header__actions">
+          <button class="btn pp-btn-export" type="button" (click)="exportPmoExcel()">
+            Export Excel
+          </button>
+          <button class="btn pp-btn-new" type="button" (click)="openCreate()">
+            <span class="pp-btn-new__plus" aria-hidden="true">+</span>
+            Nouvelle fiche
+          </button>
+        </div>
       }
     </div>
 
     <!-- Stats (PMO / Admin seulement) -->
     @if (isElevated() && !loading()) {
       <div class="pp-stats">
-        <div class="pp-stat pp-stat--total" (click)="statusFilter.set('ALL')" [class.pp-stat--active]="statusFilter() === 'ALL'">
+        <div class="pp-stat pp-stat--total" (click)="setStatusFilter('ALL')" [class.pp-stat--active]="statusFilter() === 'ALL' && !delayedOnly()">
           <span class="pp-stat__num">{{ stats.total }}</span>
           <span class="pp-stat__lbl">Total</span>
+          <button class="pp-stat__export-btn" type="button" (click)="$event.stopPropagation(); exportCategoryExcel('ALL')">Exporter</button>
         </div>
-        <div class="pp-stat pp-stat--run" (click)="statusFilter.set('EN_COURS')" [class.pp-stat--active]="statusFilter() === 'EN_COURS'">
+        <div class="pp-stat pp-stat--run" (click)="setStatusFilter('EN_COURS')" [class.pp-stat--active]="statusFilter() === 'EN_COURS' && !delayedOnly()">
           <span class="pp-stat__num">{{ stats.enCours }}</span>
           <span class="pp-stat__lbl">En cours</span>
+          <button class="pp-stat__export-btn" type="button" (click)="$event.stopPropagation(); exportCategoryExcel('EN_COURS')">Exporter</button>
         </div>
-        <div class="pp-stat pp-stat--done" (click)="statusFilter.set('TERMINE')" [class.pp-stat--active]="statusFilter() === 'TERMINE'">
+        <div class="pp-stat pp-stat--done" (click)="setStatusFilter('TERMINE')" [class.pp-stat--active]="statusFilter() === 'TERMINE' && !delayedOnly()">
           <span class="pp-stat__num">{{ stats.termine }}</span>
           <span class="pp-stat__lbl">Terminés</span>
+          <button class="pp-stat__export-btn" type="button" (click)="$event.stopPropagation(); exportCategoryExcel('TERMINE')">Exporter</button>
         </div>
-        <div class="pp-stat pp-stat--draft" (click)="statusFilter.set('BROUILLON')" [class.pp-stat--active]="statusFilter() === 'BROUILLON'">
+        <div class="pp-stat pp-stat--draft" (click)="setStatusFilter('BROUILLON')" [class.pp-stat--active]="statusFilter() === 'BROUILLON' && !delayedOnly()">
           <span class="pp-stat__num">{{ stats.brouillon }}</span>
           <span class="pp-stat__lbl">Brouillons</span>
+          <button class="pp-stat__export-btn" type="button" (click)="$event.stopPropagation(); exportCategoryExcel('BROUILLON')">Exporter</button>
         </div>
-        <div class="pp-stat pp-stat--pause" (click)="statusFilter.set('EN_PAUSE')" [class.pp-stat--active]="statusFilter() === 'EN_PAUSE'">
-          <span class="pp-stat__num">{{ stats.enPause }}</span>
-          <span class="pp-stat__lbl">En pause</span>
+        <div class="pp-stat pp-stat--delay" (click)="showDelayedOnly()" [class.pp-stat--active]="delayedOnly()">
+          <span class="pp-stat__num">{{ stats.enRetard }}</span>
+          <span class="pp-stat__lbl">En retard</span>
+          <button class="pp-stat__export-btn" type="button" (click)="$event.stopPropagation(); exportCategoryExcel('DELAYED')">Exporter</button>
         </div>
       </div>
     }
@@ -72,12 +82,43 @@
       />
     </div>
     <div class="pp-chips" role="group" aria-label="Filtrer par statut">
-      <button class="pp-chip" [class.pp-chip--active]="statusFilter() === 'ALL'" (click)="statusFilter.set('ALL')">Tous</button>
-      <button class="pp-chip pp-chip--run" [class.pp-chip--active]="statusFilter() === 'EN_COURS'" (click)="statusFilter.set('EN_COURS')">En cours</button>
-      <button class="pp-chip pp-chip--pause" [class.pp-chip--active]="statusFilter() === 'EN_PAUSE'" (click)="statusFilter.set('EN_PAUSE')">En pause</button>
-      <button class="pp-chip pp-chip--done" [class.pp-chip--active]="statusFilter() === 'TERMINE'" (click)="statusFilter.set('TERMINE')">Terminé</button>
-      <button class="pp-chip pp-chip--draft" [class.pp-chip--active]="statusFilter() === 'BROUILLON'" (click)="statusFilter.set('BROUILLON')">Brouillon</button>
-      <button class="pp-chip pp-chip--cancel" [class.pp-chip--active]="statusFilter() === 'ANNULE'" (click)="statusFilter.set('ANNULE')">Annulé</button>
+      <button class="pp-chip" [class.pp-chip--active]="statusFilter() === 'ALL' && !delayedOnly()" (click)="setStatusFilter('ALL')">Tous</button>
+      <button class="pp-chip pp-chip--run" [class.pp-chip--active]="statusFilter() === 'EN_COURS' && !delayedOnly()" (click)="setStatusFilter('EN_COURS')">En cours</button>
+      <button class="pp-chip pp-chip--pause" [class.pp-chip--active]="statusFilter() === 'EN_PAUSE' && !delayedOnly()" (click)="setStatusFilter('EN_PAUSE')">En pause</button>
+      <button class="pp-chip pp-chip--done" [class.pp-chip--active]="statusFilter() === 'TERMINE' && !delayedOnly()" (click)="setStatusFilter('TERMINE')">Terminé</button>
+      <button class="pp-chip pp-chip--delay" [class.pp-chip--active]="delayedOnly()" (click)="showDelayedOnly()">En retard</button>
+      <button class="pp-chip pp-chip--draft" [class.pp-chip--active]="statusFilter() === 'BROUILLON' && !delayedOnly()" (click)="setStatusFilter('BROUILLON')">Brouillon</button>
+      <button class="pp-chip pp-chip--cancel" [class.pp-chip--active]="statusFilter() === 'ANNULE' && !delayedOnly()" (click)="setStatusFilter('ANNULE')">Annulé</button>
+    </div>
+
+    <!-- Toggle mode d'affichage -->
+    <div class="pp-view-toggle" role="group" aria-label="Mode d'affichage">
+      <button
+        class="pp-view-btn"
+        [class.pp-view-btn--active]="viewMode() === 'grid'"
+        (click)="setViewMode('grid')"
+        title="Affichage grille (4 colonnes)"
+        type="button"
+      >
+        <!-- icône grille -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+      </button>
+      <button
+        class="pp-view-btn"
+        [class.pp-view-btn--active]="viewMode() === 'list'"
+        (click)="setViewMode('list')"
+        title="Affichage liste (barres)"
+        type="button"
+      >
+        <!-- icône liste -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+          <circle cx="3" cy="6" r="1" fill="currentColor"/><circle cx="3" cy="12" r="1" fill="currentColor"/><circle cx="3" cy="18" r="1" fill="currentColor"/>
+        </svg>
+      </button>
     </div>
   </section>
 
@@ -93,7 +134,7 @@
       <button class="btn btn--secondary" type="button" (click)="reload()">Réessayer</button>
     </div>
   } @else {
-    <div class="pp-grid" role="list">
+    <div [class]="viewMode() === 'grid' ? 'pp-grid' : 'pp-list'" role="list">
 
       @for (p of filtered(); track p.id) {
         <article

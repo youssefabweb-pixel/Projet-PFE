@@ -18,6 +18,7 @@ import { ProjectService } from '../../../core/services/project.service';
 import { UserService } from '../../../core/services/user.service';
 import { User } from '../../../core/models/user.models';
 import { NotificationCenterService } from '../../../core/notifications/notification-center.service';
+import { NotificationService as EmailNotificationSettingsService } from '../../../core/services/notification.service';
 
 export type ProjectSheetMode = 'create' | 'edit' | 'view';
 
@@ -52,6 +53,7 @@ export class ProjectSheetDialogComponent implements OnInit {
   private readonly userService = inject(UserService);
   private readonly auth = inject(AuthService);
   private readonly notifications = inject(NotificationCenterService);
+  private readonly emailSettings = inject(EmailNotificationSettingsService);
 
   readonly saving = signal(false);
   readonly usersLoading = signal(false);
@@ -93,6 +95,10 @@ export class ProjectSheetDialogComponent implements OnInit {
     return r === 'MANAGER' || r === 'ADMINISTRATEUR';
   }
 
+  get isPmo(): boolean {
+    return this.auth.getRole() === 'MANAGER';
+  }
+
   /** Chef assigné à CE projet et dont la saisie est débloquée en mode edit. */
   get isChefActive(): boolean {
     return this.dialogData.mode === 'edit'
@@ -127,6 +133,11 @@ export class ProjectSheetDialogComponent implements OnInit {
     if (this.dialogData.mode === 'view') return false;
     // Le PMO et le Chef de projet assigné peuvent gérer les livrables
     return this.isPortfolioManager || this.isAssignedChefSelf;
+  }
+
+  /** Le PMO ne doit pas voir la section livrables. */
+  get canSeeDeliverablesSection(): boolean {
+    return !this.isPmo;
   }
 
   // ── Sections grisées ────────────────────────────────────────
@@ -505,6 +516,9 @@ export class ProjectSheetDialogComponent implements OnInit {
         .subscribe({
           next: (res) => {
             this.notifications.success(`Fiche ${payload.code} créée.`, 'Projet créé', 'task');
+            if (this.emailSettings.isEmailNotificationsEnabled()) {
+              this.notifications.info('Email notification sent', 'Notifications');
+            }
             this.hasChanges = true;
             if (res) {
               this.dialogData.mode = 'edit';
@@ -536,7 +550,7 @@ export class ProjectSheetDialogComponent implements OnInit {
           chefProjetId:      v.chefProjetId,
           memberIds:         v.memberIds,
           cpEditingUnlocked: v.cpEditingUnlocked,
-          deliverables,
+          ...(this.isPmo ? {} : { deliverables }),
         };
       } else if (this.isAssignedChefSelf) {
         // Chef actif : Planification + Livrables
@@ -561,6 +575,9 @@ export class ProjectSheetDialogComponent implements OnInit {
               `Fiche ${this.dialogData.project!.code} mise à jour.`,
               'Projet modifié', 'task'
             );
+            if (this.emailSettings.isEmailNotificationsEnabled()) {
+              this.notifications.info('Email notification sent', 'Notifications');
+            }
             this.hasChanges = true;
             if (res) {
               this.dialogData.project = res;
@@ -578,6 +595,40 @@ export class ProjectSheetDialogComponent implements OnInit {
       return;
     }
     this.submit();
+  }
+
+  onCpEditingToggle(): void {
+    if (!this.canEditTeam || this.dialogData.mode !== 'edit' || !this.dialogData.project || this.saving()) {
+      return;
+    }
+
+    const previous = this.dialogData.project.cpEditingUnlocked;
+    const next = !!this.form.controls.cpEditingUnlocked.value;
+    if (previous === next) {
+      return;
+    }
+
+    this.saving.set(true);
+    this.projectService
+      .update(this.dialogData.project.id, { cpEditingUnlocked: next })
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: (res) => {
+          this.dialogData.project = res;
+          this.patchFromProject(res);
+          this.applyRoleDisabling();
+          this.hasChanges = true;
+          this.notifications.success(
+            next ? 'Saisie CP débloquée.' : 'Saisie CP verrouillée.',
+            'Pilotage mis à jour',
+            'task',
+          );
+        },
+        error: (e: Error) => {
+          this.form.controls.cpEditingUnlocked.setValue(previous, { emitEvent: false });
+          this.notifications.error(e.message);
+        },
+      });
   }
 
   // ── Privé ────────────────────────────────────────────────────

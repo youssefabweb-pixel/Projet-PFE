@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.time.Instant;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
@@ -17,4 +18,13 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Modifying
     @Query("UPDATE Notification n SET n.read = true WHERE n.recipient.id = :userId AND n.read = false")
     int markAllReadForUser(@Param("userId") Long userId);
+
+    boolean existsByRecipientIdAndTypeAndProjectIdAndMessageAndCreatedAtBetween(
+            Long recipientId,
+            Notification.Type type,
+            Long projectId,
+            String message,
+            Instant start,
+            Instant end
+    );
 }

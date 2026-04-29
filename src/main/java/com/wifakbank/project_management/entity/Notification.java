@@ -26,7 +26,18 @@ public class Notification {
     public enum Type {
         PROJECT_ASSIGNED_AS_CHEF,
         PROJECT_MEMBER_ADDED,
-        PROJECT_PROGRESS_UPDATED
+        PROJECT_PROGRESS_UPDATED,
+        PROJECT_COMPLETED,
+        PROJECT_DELAYED,
+        MILESTONE_DELAYED,
+        MILESTONE_REMINDER_J_MINUS_1,
+        MILESTONE_REMINDER_J_PLUS_1,
+        NEW_PROJECT_CREATED,
+        TASK_ASSIGNED,
+        /** Chef de projet a soumis le macro-planning pour validation PMO. */
+        PLANNING_SUBMITTED,
+        /** PMO a validé le macro-planning — tâches débloquées pour le chef de projet. */
+        PLANNING_VALIDATED
     }
 
     @Id

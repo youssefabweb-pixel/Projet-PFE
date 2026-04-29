@@ -18,4 +18,6 @@ public class PlanningProjectResponse {
     private java.time.LocalDate plannedEndDate;
     private List<PlanningMilestoneResponse> milestones;
     private UserSummaryResponse chefProjet;
+    /** Statut du cycle de validation du macro-planning. null = projet legacy (traité comme DRAFT). */
+    private String macroPlanning;
 }

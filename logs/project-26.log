@@ -1,0 +1,9 @@
+[2026-04-28 11:57:30] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 26 | DETAILS: Projet cree : test macro [macro]
+[2026-04-28 11:57:32] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 26 | DETAILS: Projet modifie : test macro [macro]
+[2026-04-28 11:57:33] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 26 | DETAILS: Projet modifie : test macro [macro]
+[2026-04-28 11:59:00] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 26 | DETAILS: Jalon cree : test (id=16)
+[2026-04-28 11:59:24] USER: manager | ACTION: VALIDATE_PLANNING | ENTITY: PROJECT | PROJECT_ID: 26 | DETAILS: Planning validé par PMO : test macro
+[2026-04-28 12:00:29] USER: system | ACTION: CREATE | ENTITY: TASK | PROJECT_ID: 26 | DETAILS: Tache creee : tache uen (id=8, jalon=test)
+[2026-04-28 14:40:38] USER: system | ACTION: CREATE | ENTITY: TASK | PROJECT_ID: 26 | DETAILS: Tache creee : slouma (id=9, jalon=test)
+[2026-04-28 14:40:52] USER: system | ACTION: UPDATE | ENTITY: TASK | PROJECT_ID: 26 | DETAILS: Tache update : slouma | statut=NOT_STARTED | avancement=50%
+[2026-04-29 10:52:11] USER: system | ACTION: COMPLETE | ENTITY: TASK | PROJECT_ID: 26 | DETAILS: Tache complete : slouma | statut=DONE | avancement=100%

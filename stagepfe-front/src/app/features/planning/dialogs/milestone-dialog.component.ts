@@ -7,11 +7,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MAT_DATE_LOCALE, provideNativeDateAdapter } from '@angular/material/core';
 import { Milestone, MilestoneInput } from '../../../core/models/project.models';
 
 export interface MilestoneDialogData {
   mode: 'create' | 'edit';
   milestone?: Milestone;
+  /** Quand true (planning validé par PMO), les champs date début et date fin sont verrouillés. */
+  datesLocked?: boolean;
 }
 
 @Component({
@@ -25,8 +29,10 @@ export interface MilestoneDialogData {
     MatInputModule,
     MatButtonModule,
     MatSelectModule,
-    MatIconModule
+    MatIconModule,
+    MatDatepickerModule
   ],
+  providers: [provideNativeDateAdapter(), { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' }],
   template: `
     <div class="dialog-container">
       <header class="dialog-header">
@@ -35,7 +41,9 @@ export interface MilestoneDialogData {
         </div>
         <div class="header-text">
           <h2 mat-dialog-title>{{ data.mode === 'create' ? 'Nouveau Jalon' : 'Modifier le Jalon' }}</h2>
-          <p class="header-subtitle">Définissez les objectifs et l'échéance de cette étape clé.</p>
+          <p class="header-subtitle">
+            {{ data.datesLocked ? 'Dates figées — planning validé par le PMO.' : "Définissez les objectifs et l'échéance de cette étape clé." }}
+          </p>
         </div>
       </header>
       
@@ -57,16 +65,26 @@ export interface MilestoneDialogData {
 
           <section class="form-section">
             <h3 class="section-title">Planification & Suivi</h3>
+
+            <div class="alert-box info" *ngIf="data.datesLocked">
+              <mat-icon>lock</mat-icon>
+              <span>Les dates ont été figées lors de la validation PMO. Seuls le statut, la justification et le plan d'action sont modifiables.</span>
+            </div>
+
             <div class="grid-row grid-row--planning">
               <mat-form-field appearance="outline" class="date-field">
-                <mat-label>Date début</mat-label>
-                <input matInput type="date" formControlName="startDate" />
+                <mat-label>Date début {{ data.datesLocked ? '(figée)' : '' }}</mat-label>
+                <input matInput [matDatepicker]="startPicker" formControlName="startDate" placeholder="jj/mm/aaaa" autocomplete="off" [readonly]="data.datesLocked" />
+                <mat-datepicker-toggle matIconSuffix [for]="startPicker" [disabled]="!!data.datesLocked" />
+                <mat-error *ngIf="form.get('startDate')?.hasError('matDatepickerParse')">Date invalide</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline" class="date-field">
-                <mat-label>Date fin</mat-label>
-                <input matInput type="date" formControlName="endDate" />
+                <mat-label>Date fin {{ data.datesLocked ? '(figée)' : '' }}</mat-label>
+                <input matInput [matDatepicker]="endPicker" formControlName="endDate" placeholder="jj/mm/aaaa" autocomplete="off" [readonly]="data.datesLocked" />
+                <mat-datepicker-toggle matIconSuffix [for]="endPicker" [disabled]="!!data.datesLocked" />
                 <mat-error *ngIf="form.get('endDate')?.hasError('required')">Requis</mat-error>
+                <mat-error *ngIf="form.get('endDate')?.hasError('matDatepickerParse')">Date invalide</mat-error>
               </mat-form-field>
 
               <mat-form-field appearance="outline">
@@ -83,9 +101,16 @@ export interface MilestoneDialogData {
 
             <mat-form-field appearance="outline" class="full-width date-field" *ngIf="form.get('status')?.value === 'TERMINE'">
               <mat-label>Date de fin réelle</mat-label>
-              <input matInput type="date" formControlName="actualEndDate" />
+              <input matInput [matDatepicker]="actualPicker" formControlName="actualEndDate" placeholder="jj/mm/aaaa" autocomplete="off" />
+              <mat-datepicker-toggle matIconSuffix [for]="actualPicker" />
               <mat-error *ngIf="form.get('actualEndDate')?.hasError('required')">La date de fin réelle est obligatoire</mat-error>
+              <mat-error *ngIf="form.get('actualEndDate')?.hasError('matDatepickerParse')">Date invalide</mat-error>
             </mat-form-field>
+
+            <!-- Pickers en dehors des mat-form-field : overlay CDK + pas de layout inline dans la modale -->
+            <mat-datepicker #startPicker panelClass="wb-datepicker-panel" />
+            <mat-datepicker #endPicker panelClass="wb-datepicker-panel" />
+            <mat-datepicker #actualPicker panelClass="wb-datepicker-panel" />
           </section>
 
           <section class="form-section tracking-section" *ngIf="showJustification()">
@@ -205,7 +230,7 @@ export interface MilestoneDialogData {
     .grid-row--planning {
       grid-template-columns: 1fr 1fr 1fr;
     }
-    .date-field input[type='date'] {
+    .date-field input {
       letter-spacing: 0.02em;
       font-weight: 600;
     }
@@ -223,6 +248,12 @@ export interface MilestoneDialogData {
         color: #856404;
         border: 1px solid rgba(212, 160, 23, 0.3);
         mat-icon { color: var(--warning); }
+      }
+      &.info {
+        background: #eff6ff;
+        color: #1e40af;
+        border: 1px solid #bfdbfe;
+        mat-icon { color: #1e40af; }
       }
     }
     mat-dialog-actions {
@@ -297,12 +328,12 @@ export class MilestoneDialogComponent {
     this.form = this.fb.group({
       title: [data.milestone?.title || '', [Validators.required]],
       description: [data.milestone?.description || ''],
-      startDate: [null],
-      endDate: [data.milestone?.deadline || null, [Validators.required]],
+      startDate: [{ value: null, disabled: !!data.datesLocked }],
+      endDate: [{ value: this.parseDateOnly(data.milestone?.deadline), disabled: !!data.datesLocked }, [Validators.required]],
       status: [data.milestone?.status || 'NON_DEMARRE'],
       justification: [data.milestone?.justification || ''],
       actionPlan: [data.milestone?.actionPlan || ''],
-      actualEndDate: [data.milestone?.actualEndDate || null]
+      actualEndDate: [this.parseDateOnly(data.milestone?.actualEndDate)]
     });
 
     // Conditional validators for governance workflow
@@ -352,12 +383,42 @@ export class MilestoneDialogComponent {
     const result: MilestoneInput = {
       title: rawValue.title,
       description: rawValue.description,
-      deadline: rawValue.endDate,
+      deadline: this.toIsoDate(rawValue.endDate) ?? '',
       status: rawValue.status,
       justification: rawValue.justification,
       actionPlan: rawValue.actionPlan,
-      actualEndDate: rawValue.actualEndDate || null
+      actualEndDate: this.toIsoDate(rawValue.actualEndDate)
     };
     this.dialogRef.close(result);
+  }
+
+  /** Parse API / HTML date string to local calendar date (no UTC shift). */
+  private parseDateOnly(value: string | Date | null | undefined): Date | null {
+    if (value == null || value === '') {
+      return null;
+    }
+    if (value instanceof Date) {
+      return isNaN(value.getTime()) ? null : value;
+    }
+    const part = value.split('T')[0];
+    const [y, m, d] = part.split('-').map((n) => parseInt(n, 10));
+    if (!y || !m || !d) {
+      return null;
+    }
+    return new Date(y, m - 1, d);
+  }
+
+  private toIsoDate(value: Date | string | null | undefined): string | null {
+    if (value == null || value === '') {
+      return null;
+    }
+    const d = value instanceof Date ? value : this.parseDateOnly(value);
+    if (!d || isNaN(d.getTime())) {
+      return null;
+    }
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 }

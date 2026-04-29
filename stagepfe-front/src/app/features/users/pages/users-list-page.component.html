@@ -66,7 +66,7 @@
             [class.chip--active]="selectedRoles().has(role)"
             (click)="toggleRoleChip(role)"
           >
-            {{ role }}
+            {{ displayRole(role) }}
           </button>
         }
       </div>
@@ -155,7 +155,7 @@
                 }
                 @if (colVisible()['role']) {
                   <td>
-                    <span class="badge" [ngClass]="roleBadgeClass(user.role)">{{ user.role }}</span>
+                    <span class="badge" [ngClass]="roleBadgeClass(user.role)">{{ displayRole(user.role) }}</span>
                   </td>
                 }
                 @if (colVisible()['status']) {

@@ -37,21 +37,21 @@ public class UserAdminController {
 
     @Operation(summary = "Liste des utilisateurs")
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRATEUR','MANAGER','MOA','METIER','DEVELOPPEMENT')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATEUR','MANAGER')")
     public List<UserResponse> list() {
         return userAdminService.findAll();
     }
 
     @Operation(summary = "Liste des rôles (acteurs système)")
     @GetMapping("/roles")
-    @PreAuthorize("hasAnyRole('ADMINISTRATEUR','MANAGER','MOA','METIER','DEVELOPPEMENT')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATEUR','MANAGER')")
     public List<String> roles() {
         return userAdminService.getAvailableRoles();
     }
 
     @Operation(summary = "Détail utilisateur par id")
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMINISTRATEUR','MANAGER','MOA','METIER','DEVELOPPEMENT')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATEUR','MANAGER')")
     public UserResponse get(@PathVariable Long id) {
         return userAdminService.findById(id);
     }

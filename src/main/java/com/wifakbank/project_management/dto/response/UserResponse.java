@@ -17,4 +17,5 @@ public class UserResponse {
     private Instant updatedAt;
     private Instant lastLoginAt;
     private Long createdByManagerId;
+    private String createdByManagerUsername;
 }

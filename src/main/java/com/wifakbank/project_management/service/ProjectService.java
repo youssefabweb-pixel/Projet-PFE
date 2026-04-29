@@ -1,5 +1,7 @@
 package com.wifakbank.project_management.service;
 
+import com.wifakbank.project_management.service.LoggingService;
+import com.wifakbank.project_management.service.ActionHistoryService;
 import com.wifakbank.project_management.dto.request.DeliverableRequest;
 import com.wifakbank.project_management.dto.request.ProjectCreateRequest;
 import com.wifakbank.project_management.dto.request.ProjectUpdateRequest;
@@ -9,6 +11,7 @@ import com.wifakbank.project_management.dto.response.ProjectResponse;
 import com.wifakbank.project_management.dto.response.UserSummaryResponse;
 import com.wifakbank.project_management.entity.Deliverable;
 import com.wifakbank.project_management.entity.Domain;
+import com.wifakbank.project_management.entity.MacroPlanningStatus;
 import com.wifakbank.project_management.entity.Notification;
 import com.wifakbank.project_management.entity.Project;
 import com.wifakbank.project_management.entity.ProjectStatus;
@@ -41,6 +44,8 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final LoggingService loggingService;
+    private final ActionHistoryService actionHistoryService;
 
     @Transactional(readOnly = true)
     public List<ProjectResponse> list(Authentication authentication) {
@@ -112,6 +117,10 @@ public class ProjectService {
         }
 
         Project saved = projectRepository.save(project);
+        notificationService.notifyNewProject(saved);
+        String createProjectDetails = "Projet cree : " + saved.getName() + " [" + saved.getCode() + "]";
+        loggingService.logAction(actor.getUsername(), "CREATE", "PROJECT", saved.getId(), createProjectDetails);
+        actionHistoryService.record(actor.getUsername(), "CREATE", "PROJECT", saved.getId(), createProjectDetails);
 
         if (chef != null) {
             notificationService.notify(
@@ -140,6 +149,7 @@ public class ProjectService {
 
         Long previousChefId = project.getChefProjet() != null ? project.getChefProjet().getId() : null;
         Set<Long> previousMemberIds = project.getMembers().stream().map(User::getId).collect(Collectors.toSet());
+        ProjectStatus previousStatus = project.getStatus();
 
         boolean elevated = isElevated(actor.getRole());
 
@@ -153,6 +163,9 @@ public class ProjectService {
         }
 
         Project saved = projectRepository.save(project);
+        String updateProjectDetails = "Projet modifie : " + saved.getName() + " [" + saved.getCode() + "]";
+        loggingService.logAction(actor.getUsername(), "UPDATE", "PROJECT", saved.getId(), updateProjectDetails);
+        actionHistoryService.record(actor.getUsername(), "UPDATE", "PROJECT", saved.getId(), updateProjectDetails);
 
         if (!elevated && isAssignedChef(actor, saved)) {
             notifyManagersOfProgressUpdate(saved, actor);
@@ -167,6 +180,79 @@ public class ProjectService {
                     saved);
         }
         notifyNewMembers(saved, previousMemberIds, saved.getMembers(), saved.getChefProjet());
+        notifyProjectStatusTransitions(saved, previousStatus);
+
+        return toResponse(projectRepository.findByIdWithAssociations(saved.getId()).orElse(saved));
+    }
+
+    /**
+     * Chef de projet : soumet la planification pour validation PMO (DRAFT → SOUMIS).
+     */
+    @Transactional
+    public ProjectResponse submitPlanning(Long id, Authentication authentication) {
+        User actor = loadUser(authentication.getName());
+        Project project = projectRepository.findByIdWithAssociations(id)
+                .orElseThrow(() -> new AppException("PROJECT_NOT_FOUND", "Projet introuvable", HttpStatus.NOT_FOUND));
+
+        if (!isAssignedChef(actor, project)) {
+            throw new AppException("ACCESS_DENIED", "Seul le chef de projet peut soumettre la planification", HttpStatus.FORBIDDEN);
+        }
+
+        MacroPlanningStatus current = project.getMacroPlanning();
+        if (current == MacroPlanningStatus.SOUMIS || current == MacroPlanningStatus.VALIDE) {
+            throw new AppException("INVALID_STATE",
+                    "Le planning a déjà été soumis ou validé (statut actuel : " + current + ")",
+                    HttpStatus.CONFLICT);
+        }
+
+        project.setMacroPlanning(MacroPlanningStatus.SOUMIS);
+        Project saved = projectRepository.save(project);
+
+        loggingService.logAction(actor.getUsername(), "SUBMIT_PLANNING", "PROJECT", saved.getId(),
+                "Planning soumis pour validation PMO : " + saved.getName());
+        actionHistoryService.record(actor.getUsername(), "SUBMIT_PLANNING", "PROJECT", saved.getId(),
+                "Planning soumis pour validation PMO : " + saved.getName());
+
+        // Notifier tous les managers
+        List<User> managers = userRepository.findByRole(Role.MANAGER);
+        for (User manager : managers) {
+            notificationService.notify(manager, Notification.Type.PLANNING_SUBMITTED,
+                    "Le chef " + actor.getUsername() + " a soumis le planning du projet : " + saved.getName(), saved);
+        }
+
+        return toResponse(projectRepository.findByIdWithAssociations(saved.getId()).orElse(saved));
+    }
+
+    /**
+     * PMO / Administrateur : valide la planification soumise (SOUMIS → VALIDE).
+     */
+    @Transactional
+    public ProjectResponse validatePlanning(Long id, Authentication authentication) {
+        User actor = loadUser(authentication.getName());
+        if (!isElevated(actor.getRole())) {
+            throw new AppException("ACCESS_DENIED", "Seul le PMO ou un administrateur peut valider la planification", HttpStatus.FORBIDDEN);
+        }
+
+        Project project = projectRepository.findByIdWithAssociations(id)
+                .orElseThrow(() -> new AppException("PROJECT_NOT_FOUND", "Projet introuvable", HttpStatus.NOT_FOUND));
+
+        if (project.getMacroPlanning() == MacroPlanningStatus.VALIDE) {
+            throw new AppException("INVALID_STATE", "Le planning est déjà validé", HttpStatus.CONFLICT);
+        }
+
+        project.setMacroPlanning(MacroPlanningStatus.VALIDE);
+        Project saved = projectRepository.save(project);
+
+        loggingService.logAction(actor.getUsername(), "VALIDATE_PLANNING", "PROJECT", saved.getId(),
+                "Planning validé par PMO : " + saved.getName());
+        actionHistoryService.record(actor.getUsername(), "VALIDATE_PLANNING", "PROJECT", saved.getId(),
+                "Planning validé par PMO : " + saved.getName());
+
+        // Notifier le chef de projet
+        if (saved.getChefProjet() != null) {
+            notificationService.notify(saved.getChefProjet(), Notification.Type.PLANNING_VALIDATED,
+                    "Votre planning du projet \"" + saved.getName() + "\" a été validé par le PMO. Vous pouvez maintenant planifier les tâches.", saved);
+        }
 
         return toResponse(projectRepository.findByIdWithAssociations(saved.getId()).orElse(saved));
     }
@@ -179,6 +265,9 @@ public class ProjectService {
         }
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new AppException("PROJECT_NOT_FOUND", "Projet introuvable", HttpStatus.NOT_FOUND));
+        String deleteProjectDetails = "Projet supprime : " + project.getName() + " [" + project.getCode() + "]";
+        loggingService.logAction(actor.getUsername(), "DELETE", "PROJECT", project.getId(), deleteProjectDetails);
+        actionHistoryService.record(actor.getUsername(), "DELETE", "PROJECT", project.getId(), deleteProjectDetails);
         projectRepository.delete(project);
     }
 
@@ -397,11 +486,23 @@ public class ProjectService {
             if (Objects.equals(u.getId(), creatorId)) {
                 continue;
             }
-            notificationService.notify(
-                    u,
-                    Notification.Type.PROJECT_MEMBER_ADDED,
-                    "Vous avez été ajouté à l'équipe du projet : " + project.getName(),
-                    project);
+            notificationService.notifyParticipants(project, List.of(u), "PROJECT", project.getName());
+        }
+    }
+
+    private void notifyProjectStatusTransitions(Project project, ProjectStatus previousStatus) {
+        if (project == null || previousStatus == null) {
+            return;
+        }
+        if (previousStatus != ProjectStatus.TERMINE && project.getStatus() == ProjectStatus.TERMINE) {
+            notificationService.notifyProjectCompleted(project);
+        }
+        boolean delayedNow = project.getPlannedEndDate() != null
+                && project.getPlannedEndDate().isBefore(LocalDate.now())
+                && project.getStatus() != ProjectStatus.TERMINE
+                && project.getStatus() != ProjectStatus.ANNULE;
+        if (delayedNow) {
+            notificationService.notifyDelay(project, null);
         }
     }
 
@@ -520,6 +621,7 @@ public class ProjectService {
                 .members(members)
                 .deliverables(deliverables)
                 .cpEditingUnlocked(p.isCpEditingUnlocked())
+                .macroPlanning(p.getMacroPlanning() != null ? p.getMacroPlanning().name() : null)
                 .createdAt(p.getCreatedAt())
                 .updatedAt(p.getUpdatedAt())
                 .build();

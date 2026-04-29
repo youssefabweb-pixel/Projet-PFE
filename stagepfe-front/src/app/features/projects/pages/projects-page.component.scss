@@ -78,6 +78,31 @@
   white-space: nowrap;
 }
 
+.pp-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pp-btn-export {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.9rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pp-btn-export:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
 .pp-btn-new:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-lg);
@@ -133,14 +158,30 @@
   color: rgba(255, 255, 255, 0.72);
 }
 
+.pp-stat__export-btn {
+  margin-top: 0.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  cursor: pointer;
+}
+
+.pp-stat__export-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .pp-stat--run .pp-stat__num {
   color: #6fffc4;
 }
 .pp-stat--done .pp-stat__num {
   color: #a5d8ff;
 }
-.pp-stat--pause .pp-stat__num {
-  color: #ffd27f;
+.pp-stat--delay .pp-stat__num {
+  color: #ff9b9b;
 }
 
 /* ── Toolbar ──────────────────────────────────────────────────── */
@@ -233,6 +274,10 @@
   background: var(--primary);
   border-color: var(--primary);
 }
+.pp-chip--delay.pp-chip--active {
+  background: var(--danger);
+  border-color: var(--danger);
+}
 .pp-chip--draft.pp-chip--active {
   background: var(--neutral-500);
   border-color: var(--neutral-500);
@@ -265,11 +310,175 @@
   margin: 0;
 }
 
-/* ── Grille de cartes ─────────────────────────────────────────── */
+/* ── Boutons de basculement vue ───────────────────────────────── */
+.pp-view-toggle {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  background: var(--neutral-100, #f3f4f6);
+  flex-shrink: 0;
+}
+
+.pp-view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: transparent;
+  color: var(--neutral-500);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background: var(--surface);
+    color: var(--primary);
+  }
+
+  &--active {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* ── Grille de cartes (mode 4 colonnes) ───────────────────────── */
 .pp-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.25rem;
+
+  @media (max-width: 1280px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  @media (max-width: 960px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Mode liste (barres) ──────────────────────────────────────── */
+.pp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  /* La carte s'étale en barre horizontale */
+  .pc {
+    min-height: unset;
+
+    &:hover {
+      transform: none;
+      box-shadow: var(--shadow-md);
+    }
+  }
+
+  .pc__body {
+    display: grid;
+    grid-template-columns: 140px 1fr 160px 190px 160px auto;
+    grid-template-rows: 1fr;
+    align-items: center;
+    gap: 0 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .pc__top {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+
+  .pc__domain {
+    display: none;
+  }
+
+  .pc__title {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 0.9rem;
+    -webkit-line-clamp: 1;
+    margin: 0;
+  }
+
+  .pc__desc {
+    display: none;
+  }
+
+  .pc__progress {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .pc__dates {
+    grid-column: 4;
+    grid-row: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+
+    .pc__date-arrow {
+      display: none;
+    }
+
+    .pc__date-item {
+      flex: unset;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .pc__date-lbl {
+      min-width: 60px;
+    }
+  }
+
+  .pc__divider {
+    display: none;
+  }
+
+  .pc__team {
+    grid-column: 5;
+    grid-row: 1;
+  }
+
+  .pc__unlock-badge,
+  .pc__participant-badge {
+    display: none;
+  }
+
+  .pc__actions {
+    grid-column: 6;
+    grid-row: 1;
+    margin-top: 0;
+    padding-top: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+
+    .pc__btn {
+      text-align: center;
+      white-space: nowrap;
+      font-size: 0.72rem;
+      padding: 0.25rem 0.5rem;
+    }
+  }
+
+  /* état vide : pleine largeur */
+  .pp-empty {
+    grid-column: unset;
+  }
 }
 
 /* ── Carte projet (pc) ───────────────────────────────────────── */
@@ -708,11 +917,28 @@
   .pp-stat__num {
     font-size: 1.2rem;
   }
-  .pp-grid {
-    grid-template-columns: 1fr;
-  }
   .pp-toolbar {
     flex-direction: column;
     align-items: stretch;
+
+    .pp-view-toggle {
+      margin-left: 0;
+      align-self: flex-end;
+    }
+  }
+
+  /* Mode liste sur mobile : empilement des colonnes */
+  .pp-list {
+    .pc__body {
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto;
+
+      .pc__top { grid-column: 1; grid-row: 1; flex-direction: row; }
+      .pc__title { grid-column: 1 / -1; grid-row: 2; }
+      .pc__progress { grid-column: 1 / -1; grid-row: 3; }
+      .pc__dates { grid-column: 1 / -1; grid-row: 4; flex-direction: row; .pc__date-arrow { display: block; } .pc__date-item { flex: 1; } }
+      .pc__team { grid-column: 1; grid-row: 5; }
+      .pc__actions { grid-column: 1 / -1; grid-row: 6; flex-direction: row; }
+    }
   }
 }

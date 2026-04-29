@@ -8,7 +8,13 @@ import { API_REQUEST_TIMEOUT_MS } from '../constants/api-timeout';
 
 export type ServerNotificationType =
   | 'PROJECT_ASSIGNED_AS_CHEF'
-  | 'PROJECT_MEMBER_ADDED';
+  | 'PROJECT_MEMBER_ADDED'
+  | 'PROJECT_PROGRESS_UPDATED'
+  | 'PROJECT_COMPLETED'
+  | 'PROJECT_DELAYED'
+  | 'MILESTONE_DELAYED'
+  | 'NEW_PROJECT_CREATED'
+  | 'TASK_ASSIGNED';
 
 export interface ServerNotification {
   id: number;

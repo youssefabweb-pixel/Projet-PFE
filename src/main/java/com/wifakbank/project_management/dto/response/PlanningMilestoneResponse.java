@@ -10,6 +10,8 @@ import java.util.List;
 public class PlanningMilestoneResponse {
     private Long id;
     private String name;
+    /** Canonical planning status: NOT_STARTED, IN_PROGRESS, COMPLETED, DELAYED, BLOCKED */
+    private String status;
     private int progress;
     private boolean completed;
     private java.time.LocalDate deadline;

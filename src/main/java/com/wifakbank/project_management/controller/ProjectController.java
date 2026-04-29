@@ -62,6 +62,19 @@ public class ProjectController {
         return projectService.update(id, request, authentication);
     }
 
+    @Operation(summary = "Chef de projet : soumettre le macro-planning pour validation PMO (DRAFT → SOUMIS)")
+    @PutMapping("/{id}/planning/submit")
+    public ProjectResponse submitPlanning(@PathVariable Long id, Authentication authentication) {
+        return projectService.submitPlanning(id, authentication);
+    }
+
+    @Operation(summary = "PMO : valider le macro-planning soumis (SOUMIS → VALIDE)")
+    @PutMapping("/{id}/planning/validate")
+    @PreAuthorize("hasAnyRole('ADMINISTRATEUR','MANAGER')")
+    public ProjectResponse validatePlanning(@PathVariable Long id, Authentication authentication) {
+        return projectService.validatePlanning(id, authentication);
+    }
+
     @Operation(summary = "Supprimer une fiche projet (MANAGER ou ADMINISTRATEUR)")
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMINISTRATEUR','MANAGER')")

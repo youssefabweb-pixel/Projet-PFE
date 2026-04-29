@@ -55,6 +55,24 @@ export class ProjectService {
     );
   }
 
+  /** Chef de projet : soumet la planification pour validation PMO (DRAFT → SOUMIS). */
+  submitPlanning(id: number): Observable<Project> {
+    return this.http.put<Project>(`${this.baseUrl}/${id}/planning/submit`, {}).pipe(
+      catchError((err) =>
+        throwError(() => new Error(getHttpErrorMessage(err, 'Soumission du planning impossible.'))),
+      ),
+    );
+  }
+
+  /** PMO : valide la planification soumise (SOUMIS → VALIDE). */
+  validatePlanning(id: number): Observable<Project> {
+    return this.http.put<Project>(`${this.baseUrl}/${id}/planning/validate`, {}).pipe(
+      catchError((err) =>
+        throwError(() => new Error(getHttpErrorMessage(err, 'Validation du planning impossible.'))),
+      ),
+    );
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`).pipe(
       catchError((err) =>

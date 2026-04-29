@@ -120,7 +120,7 @@ function optionalPasswordMin8(): ValidatorFn {
             <label class="field">
               <span>Rôle *</span>
               <select formControlName="role">
-                <option *ngFor="let r of roles" [value]="r">{{ r }}</option>
+                <option *ngFor="let r of roles" [value]="r">{{ displayRole(r) }}</option>
               </select>
             </label>
 
@@ -275,6 +275,10 @@ export class UserFormSheetComponent implements OnInit {
   protected saving = false;
   protected formError: string | null = null;
   private usernameManuallyOverridden = false;
+
+  protected displayRole(role: string): string {
+    return role.toUpperCase() === 'MANAGER' ? 'PMO' : role;
+  }
 
   protected readonly form = new FormGroup({
     firstName: new FormControl('', { nonNullable: true }),

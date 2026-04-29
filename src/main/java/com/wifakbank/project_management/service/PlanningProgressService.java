@@ -1,22 +1,32 @@
 package com.wifakbank.project_management.service;
 
+import com.wifakbank.project_management.dto.request.MilestonePlanningStatusRequest;
+import com.wifakbank.project_management.dto.request.MilestoneRequest;
+import com.wifakbank.project_management.dto.request.PlanningJustificationRequest;
+import com.wifakbank.project_management.dto.request.TaskRequest;
+import com.wifakbank.project_management.dto.response.MilestoneProgressSummaryResponse;
 import com.wifakbank.project_management.dto.response.PlanningMilestoneResponse;
+import com.wifakbank.project_management.dto.response.PlanningProgressSummaryResponse;
 import com.wifakbank.project_management.dto.response.PlanningProjectResponse;
 import com.wifakbank.project_management.dto.response.PlanningTaskResponse;
+import com.wifakbank.project_management.dto.response.TaskDocumentResponse;
 import com.wifakbank.project_management.dto.response.UserSummaryResponse;
+import com.wifakbank.project_management.repository.TaskDocumentRepository;
 import com.wifakbank.project_management.entity.Milestone;
 import com.wifakbank.project_management.entity.MilestoneStatus;
 import com.wifakbank.project_management.entity.Project;
 import com.wifakbank.project_management.entity.ProjectStatus;
 import com.wifakbank.project_management.entity.Role;
 import com.wifakbank.project_management.entity.Task;
-import com.wifakbank.project_management.entity.TaskStatus;
 import com.wifakbank.project_management.entity.TaskPriority;
+import com.wifakbank.project_management.entity.TaskStatus;
 import com.wifakbank.project_management.entity.User;
 import com.wifakbank.project_management.exception.AppException;
+import com.wifakbank.project_management.repository.MilestoneRepository;
 import com.wifakbank.project_management.repository.ProjectRepository;
 import com.wifakbank.project_management.repository.TaskRepository;
 import com.wifakbank.project_management.repository.UserRepository;
+import com.wifakbank.project_management.support.PlanningStatusMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,7 +34,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,19 +46,25 @@ public class PlanningProgressService {
 
     private final ProjectRepository projectRepository;
     private final TaskRepository taskRepository;
+    private final TaskDocumentRepository taskDocumentRepository;
+    private final MilestoneRepository milestoneRepository;
     private final UserRepository userRepository;
+    private final MilestoneTaskService milestoneTaskService;
+    private final PlanningProgressCalculationService calculationService;
 
     @Transactional(readOnly = true)
     public List<PlanningProjectResponse> getProjectsForPlanning(String username) {
         User actor = loadUser(username);
+        LocalDate today = LocalDate.now();
         return resolveVisibleProjects(actor).stream()
-                .map(this::toProjectResponse)
+                .map(p -> toProjectResponse(p, today))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public List<PlanningProjectResponse> searchProjectsByName(String name, String username) {
         User actor = loadUser(username);
+        LocalDate today = LocalDate.now();
         String query = name == null ? "" : name.trim();
         if (query.isEmpty()) {
             return getProjectsForPlanning(username);
@@ -52,37 +72,248 @@ public class PlanningProgressService {
         String q = query.toLowerCase();
         return resolveVisibleProjects(actor).stream()
                 .filter(project -> matchesSearch(project, q))
-                .map(this::toProjectResponse)
+                .map(p -> toProjectResponse(p, today))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PlanningProgressSummaryResponse getProjectProgress(Long projectId, String username) {
+        User actor = loadUser(username);
+        Project project = projectRepository.findByIdWithPlanningTree(projectId)
+                .orElseThrow(() -> new AppException("PROJECT_NOT_FOUND", "Projet introuvable", HttpStatus.NOT_FOUND));
+        assertProjectAccessible(project, actor);
+        LocalDate today = LocalDate.now();
+        return buildProjectProgressSummary(project, today);
+    }
+
+    @Transactional(readOnly = true)
+    public MilestoneProgressSummaryResponse getMilestoneProgress(Long milestoneId, String username) {
+        User actor = loadUser(username);
+        Milestone milestone = milestoneRepository.findByIdWithProject(milestoneId)
+                .orElseThrow(() -> new AppException("MILESTONE_NOT_FOUND", "Jalon introuvable", HttpStatus.NOT_FOUND));
+        assertProjectAccessible(milestone.getProject(), actor);
+        List<Task> tasks = taskRepository.findByMilestoneId(milestoneId);
+        LocalDate today = LocalDate.now();
+        return buildMilestoneProgressSummary(milestone, tasks, today);
+    }
+
+    @Transactional
+    public PlanningTaskResponse updateTaskProgress(Long taskId, int progressPercent, String justification, String username) {
+        User actor = loadUser(username);
+        Task task = taskRepository.findWithPlanningContextById(taskId)
+                .orElseThrow(() -> new AppException("TASK_NOT_FOUND", "Tâche introuvable", HttpStatus.NOT_FOUND));
+        assertProjectAccessible(task.getMilestone().getProject(), actor);
+
+        TaskRequest request = new TaskRequest();
+        request.setTitle(task.getTitle());
+        request.setProgressPercent(progressPercent);
+        if (justification != null && !justification.isBlank()) {
+            request.setJustification(justification.trim());
+        }
+        milestoneTaskService.updateTask(taskId, request);
+
+        Task saved = taskRepository.findWithPlanningContextById(taskId)
+                .orElseThrow(() -> new AppException("TASK_NOT_FOUND", "Tâche introuvable", HttpStatus.NOT_FOUND));
+        return buildPlanningTaskResponse(saved, LocalDate.now());
     }
 
     @Transactional
     public PlanningTaskResponse updateTaskStatus(Long taskId, TaskStatus status) {
-        Task task = taskRepository.findById(taskId)
+        Task task = taskRepository.findWithPlanningContextById(taskId)
                 .orElseThrow(() -> new AppException("TASK_NOT_FOUND", "Tâche introuvable", HttpStatus.NOT_FOUND));
+        TaskRequest request = new TaskRequest();
+        request.setTitle(task.getTitle());
+        request.setStatus(status.name());
+        milestoneTaskService.updateTask(taskId, request);
+        Task saved = taskRepository.findWithPlanningContextById(taskId)
+                .orElseThrow(() -> new AppException("TASK_NOT_FOUND", "Tâche introuvable", HttpStatus.NOT_FOUND));
+        return buildPlanningTaskResponse(saved, LocalDate.now());
+    }
 
-        task.setStatus(status);
-        task.setProgressPercent(progressFromStatus(status));
-        Task saved = taskRepository.save(task);
+    @Transactional
+    public PlanningMilestoneResponse updateMilestonePlanningStatus(
+            Long milestoneId,
+            MilestonePlanningStatusRequest body,
+            String username) {
+        User actor = loadUser(username);
+        Milestone milestone = milestoneRepository.findByIdWithProject(milestoneId)
+                .orElseThrow(() -> new AppException("MILESTONE_NOT_FOUND", "Jalon introuvable", HttpStatus.NOT_FOUND));
+        assertProjectAccessible(milestone.getProject(), actor);
 
-        recalculateProgress(saved.getMilestone().getProject());
+        MilestoneStatus target;
+        try {
+            target = PlanningStatusMapper.parseMilestoneStatus(body.getStatus());
+        } catch (IllegalArgumentException ex) {
+            throw new AppException("INVALID_MILESTONE_STATUS", "Statut jalon invalide", HttpStatus.BAD_REQUEST);
+        }
 
-        return PlanningTaskResponse.builder()
-                .id(saved.getId())
-                .name(saved.getTitle())
-                .status(saved.getStatus().name())
+        MilestoneRequest request = new MilestoneRequest();
+        request.setTitle(milestone.getTitle());
+        request.setDescription(milestone.getDescription());
+        request.setDeadline(milestone.getDeadline());
+        request.setActualEndDate(milestone.getActualEndDate());
+        request.setStatus(target.name());
+        request.setJustification(body.getJustification());
+        request.setActionPlan(milestone.getActionPlan());
+        milestoneTaskService.updateMilestone(milestoneId, request);
+
+        Milestone saved = milestoneRepository.findByIdWithProject(milestoneId)
+                .orElseThrow(() -> new AppException("MILESTONE_NOT_FOUND", "Jalon introuvable", HttpStatus.NOT_FOUND));
+        List<Task> tasks = taskRepository.findByMilestoneId(milestoneId);
+        return toMilestoneResponse(saved, tasks, LocalDate.now());
+    }
+
+    @Transactional
+    public PlanningTaskResponse addTaskJustification(Long taskId, PlanningJustificationRequest body, String username) {
+        User actor = loadUser(username);
+        Task task = taskRepository.findWithPlanningContextById(taskId)
+                .orElseThrow(() -> new AppException("TASK_NOT_FOUND", "Tâche introuvable", HttpStatus.NOT_FOUND));
+        assertProjectAccessible(task.getMilestone().getProject(), actor);
+
+        TaskRequest request = new TaskRequest();
+        request.setTitle(task.getTitle());
+        request.setJustification(body.getJustification().trim());
+        milestoneTaskService.updateTask(taskId, request);
+
+        Task saved = taskRepository.findWithPlanningContextById(taskId)
+                .orElseThrow(() -> new AppException("TASK_NOT_FOUND", "Tâche introuvable", HttpStatus.NOT_FOUND));
+        return buildPlanningTaskResponse(saved, LocalDate.now());
+    }
+
+    @Transactional
+    public PlanningMilestoneResponse addMilestoneJustification(Long milestoneId, PlanningJustificationRequest body, String username) {
+        User actor = loadUser(username);
+        Milestone milestone = milestoneRepository.findByIdWithProject(milestoneId)
+                .orElseThrow(() -> new AppException("MILESTONE_NOT_FOUND", "Jalon introuvable", HttpStatus.NOT_FOUND));
+        assertProjectAccessible(milestone.getProject(), actor);
+
+        MilestoneRequest request = new MilestoneRequest();
+        request.setTitle(milestone.getTitle());
+        request.setDescription(milestone.getDescription());
+        request.setDeadline(milestone.getDeadline());
+        request.setActualEndDate(milestone.getActualEndDate());
+        request.setStatus(milestone.getStatus() != null ? milestone.getStatus().name() : null);
+        request.setJustification(body.getJustification().trim());
+        request.setActionPlan(milestone.getActionPlan());
+        milestoneTaskService.updateMilestone(milestoneId, request);
+
+        Milestone saved = milestoneRepository.findByIdWithProject(milestoneId)
+                .orElseThrow(() -> new AppException("MILESTONE_NOT_FOUND", "Jalon introuvable", HttpStatus.NOT_FOUND));
+        List<Task> tasks = taskRepository.findByMilestoneId(milestoneId);
+        return toMilestoneResponse(saved, tasks, LocalDate.now());
+    }
+
+    private PlanningProgressSummaryResponse buildProjectProgressSummary(Project project, LocalDate today) {
+        List<Milestone> milestones = distinctMilestonesOrdered(project);
+        int progress = milestones.isEmpty()
+                ? 0
+                : (int) Math.round(
+                milestones.stream()
+                        .mapToInt(m -> calculationService.milestoneProgressPercent(tasksOf(m)))
+                        .average()
+                        .orElse(0.0));
+        boolean completed = !milestones.isEmpty()
+                && milestones.stream().allMatch(m -> calculationService.allTasksCompleted(tasksOf(m)));
+
+        int delayed = 0;
+        int blocked = 0;
+        for (Milestone m : milestones) {
+            for (Task t : tasksOf(m)) {
+                TaskStatus eff = calculationService.effectiveTaskStatus(t, today);
+                if (eff == TaskStatus.EN_RETARD) {
+                    delayed++;
+                }
+                if (eff == TaskStatus.BLOQUE) {
+                    blocked++;
+                }
+            }
+        }
+
+        List<MilestoneProgressSummaryResponse> ms = milestones.stream()
+                .sorted(Comparator.comparing(Milestone::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(m -> buildMilestoneProgressSummary(m, taskRepository.findByMilestoneId(m.getId()), today))
+                .toList();
+
+        return PlanningProgressSummaryResponse.builder()
+                .projectId(project.getId())
+                .code(project.getCode())
+                .name(project.getName())
+                .status(project.getStatus() != null ? project.getStatus().name() : ProjectStatus.BROUILLON.name())
+                .progressPercent(progress)
+                .completed(completed)
+                .milestoneCount(milestones.size())
+                .delayedTaskCount(delayed)
+                .blockedTaskCount(blocked)
+                .milestones(ms)
                 .build();
     }
 
-    private PlanningProjectResponse toProjectResponse(Project project) {
-        ProjectComputed computed = recalculateProgress(project);
+    private MilestoneProgressSummaryResponse buildMilestoneProgressSummary(Milestone milestone, List<Task> tasks, LocalDate today) {
+        int progress = calculationService.milestoneProgressPercent(tasks);
+        boolean completed = calculationService.allTasksCompleted(tasks);
+        MilestoneStatus effective = calculationService.effectiveMilestoneStatus(milestone, tasks, today);
+        long delayDays = calculationService.milestoneDelayDays(milestone, effective, today);
+        long doneCount = tasks.stream().filter(t -> t.getStatus() == TaskStatus.DONE).count();
+
+        return MilestoneProgressSummaryResponse.builder()
+                .milestoneId(milestone.getId())
+                .name(milestone.getTitle())
+                .status(PlanningStatusMapper.milestoneToApi(effective))
+                .progressPercent(progress)
+                .completed(completed)
+                .deadline(milestone.getDeadline())
+                .delayDays(delayDays)
+                .taskCount(tasks.size())
+                .completedTaskCount((int) doneCount)
+                .build();
+    }
+
+    private List<Task> tasksOf(Milestone m) {
+        return m.getTasks() == null ? List.of() : m.getTasks();
+    }
+
+    /**
+     * Évite les doublons de jalons renvoyés par Hibernate lorsque {@code members} et {@code milestones}
+     * sont chargés dans le même {@link org.springframework.data.jpa.repository.EntityGraph} :
+     * la jointure SQL produit un produit cartésien (chaque jalon répété une fois par membre).
+     */
+    private List<Milestone> distinctMilestonesOrdered(Project project) {
+        List<Milestone> raw = project.getMilestones();
+        if (raw == null || raw.isEmpty()) {
+            return List.of();
+        }
+        return raw.stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(
+                        Milestone::getId,
+                        Function.identity(),
+                        (a, b) -> a,
+                        LinkedHashMap::new))
+                .values()
+                .stream()
+                .sorted(Comparator.comparing(Milestone::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .toList();
+    }
+
+    private PlanningProjectResponse toProjectResponse(Project project, LocalDate today) {
+        List<Milestone> milestones = distinctMilestonesOrdered(project);
+        int projectProgress = milestones.isEmpty()
+                ? 0
+                : (int) Math.round(
+                milestones.stream()
+                        .mapToInt(m -> calculationService.milestoneProgressPercent(tasksOf(m)))
+                        .average()
+                        .orElse(0.0));
+        boolean allMilestonesDone = !milestones.isEmpty()
+                && milestones.stream().allMatch(m -> calculationService.allTasksCompleted(tasksOf(m)));
+
         return PlanningProjectResponse.builder()
                 .id(project.getId())
                 .code(project.getCode())
                 .name(project.getName())
                 .status(project.getStatus() != null ? project.getStatus().name() : ProjectStatus.BROUILLON.name())
-                .progress(computed.progress())
-                .completed(computed.completed())
+                .progress(projectProgress)
+                .completed(allMilestonesDone)
                 .plannedStartDate(project.getPlannedStartDate())
                 .plannedEndDate(project.getPlannedEndDate())
                 .chefProjet(project.getChefProjet() != null ? UserSummaryResponse.builder()
@@ -91,143 +322,88 @@ public class PlanningProgressService {
                         .email(project.getChefProjet().getEmail())
                         .role(project.getChefProjet().getRole().name())
                         .build() : null)
-                .milestones(project.getMilestones().stream()
+                .milestones(milestones.stream()
                         .sorted(Comparator.comparing(Milestone::getId, Comparator.nullsLast(Comparator.naturalOrder())))
-                        .map(this::toMilestoneResponse)
+                        .map(m -> toMilestoneResponse(m, tasksOf(m), today))
                         .toList())
+                .macroPlanning(project.getMacroPlanning() != null ? project.getMacroPlanning().name() : null)
                 .build();
     }
 
-    private PlanningMilestoneResponse toMilestoneResponse(Milestone milestone) {
-        MilestoneComputed computed = computeMilestone(milestone);
-        Long delay = calculateDelay(milestone.getDeadline(), milestone.getStatus());
-        
+    private PlanningMilestoneResponse toMilestoneResponse(Milestone milestone, List<Task> tasks, LocalDate today) {
+        int progress = calculationService.milestoneProgressPercent(tasks);
+        boolean completed = calculationService.allTasksCompleted(tasks);
+        MilestoneStatus effective = calculationService.effectiveMilestoneStatus(milestone, tasks, today);
+        long delayDays = calculationService.milestoneDelayDays(milestone, effective, today);
+
         return PlanningMilestoneResponse.builder()
                 .id(milestone.getId())
                 .name(milestone.getTitle())
                 .description(milestone.getDescription())
-                .progress(computed.progress())
-                .completed(computed.completed())
+                .status(PlanningStatusMapper.milestoneToApi(effective))
+                .progress(progress)
+                .completed(completed)
                 .deadline(milestone.getDeadline())
                 .justification(milestone.getJustification())
-                .delayDays(delay)
-                .tasks(milestone.getTasks().stream()
+                .delayDays(delayDays)
+                .tasks(tasks.stream()
                         .sorted(Comparator.comparing(Task::getId, Comparator.nullsLast(Comparator.naturalOrder())))
-                        .map(task -> PlanningTaskResponse.builder()
-                                .id(task.getId())
-                                .name(task.getTitle())
-                                .description(task.getDescription())
-                                .status(resolveTaskStatus(task).name())
-                                .priority(task.getPriority() != null ? task.getPriority().name() : TaskPriority.MOYENNE.name())
-                                .progress(task.getProgressPercent())
-                                .startDate(task.getStartDate())
-                                .endDate(task.getEndDate())
-                                .justification(task.getJustification())
-                                .delayDays(calculateDelay(task.getEndDate(), task.getStatus()))
-                                .actualEndDate(task.getActualEndDate())
-                                .assignee(task.getAssignee() != null ? UserSummaryResponse.builder()
-                                        .id(task.getAssignee().getId())
-                                        .username(task.getAssignee().getUsername())
-                                        .email(task.getAssignee().getEmail())
-                                        .role(task.getAssignee().getRole().name())
-                                        .build() : null)
-                                .build())
+                        .map(t -> buildPlanningTaskResponse(t, today))
                         .toList())
                 .build();
     }
 
-    private ProjectComputed recalculateProgress(Project project) {
-        List<Milestone> milestones = project.getMilestones();
-        for (Milestone m : milestones) {
-            // Self-update status based on time (Automatic Delay)
-            if (m.getStatus() != MilestoneStatus.TERMINE && m.getStatus() != MilestoneStatus.BLOQUE) {
-                if (m.getDeadline() != null && m.getDeadline().isBefore(LocalDate.now())) {
-                    m.setStatus(MilestoneStatus.EN_RETARD);
-                }
-            }
+    private PlanningTaskResponse buildPlanningTaskResponse(Task task, LocalDate today) {
+        TaskStatus effective = calculationService.effectiveTaskStatus(task, today);
+        long delayDays = calculationService.taskDelayDays(task, today);
 
-            MilestoneComputed computed = computeMilestone(m);
-            m.setProgressPercent(computed.progress());
-            
-            if (computed.progress() == 100) {
-                m.setStatus(MilestoneStatus.TERMINE);
-                if (m.getActualEndDate() == null) {
-                    m.setActualEndDate(LocalDate.now());
-                }
-            } else if (m.getStatus() == MilestoneStatus.TERMINE) {
-                m.setStatus(MilestoneStatus.EN_COURS);
-                m.setActualEndDate(null);
-            }
-        }
+        List<TaskDocumentResponse> docs = taskDocumentRepository.findByTaskIdOrderByUploadedAtDesc(task.getId())
+                .stream()
+                .map(d -> TaskDocumentResponse.builder()
+                        .id(d.getId())
+                        .taskId(task.getId())
+                        .filename(d.getFilename())
+                        .contentType(d.getContentType())
+                        .size(d.getSize())
+                        .uploadedAt(d.getUploadedAt())
+                        .downloadUrl("/api/task-documents/" + d.getId() + "/download")
+                        .build())
+                .toList();
 
-        int projectProgress = milestones.isEmpty()
-                ? 0
-                : (int) Math.round(milestones.stream().mapToInt(Milestone::getProgressPercent).average().orElse(0.0));
-        
-        boolean allMilestonesDone = !milestones.isEmpty() && milestones.stream().allMatch(m -> m.getStatus() == MilestoneStatus.TERMINE);
-
-        project.setProgressPercent(projectProgress);
-        if (allMilestonesDone) {
-            project.setStatus(ProjectStatus.TERMINE);
-            if (project.getActualEndDate() == null) {
-                project.setActualEndDate(LocalDate.now());
-            }
-        } else if (projectProgress > 0 && project.getStatus() == ProjectStatus.BROUILLON) {
-            project.setStatus(ProjectStatus.EN_COURS);
-        } else if (projectProgress < 100 && project.getStatus() == ProjectStatus.TERMINE) {
-            project.setStatus(ProjectStatus.EN_COURS);
-            project.setActualEndDate(null);
-        }
-
-        projectRepository.save(project);
-        return new ProjectComputed(projectProgress, allMilestonesDone);
+        return PlanningTaskResponse.builder()
+                .id(task.getId())
+                .name(task.getTitle())
+                .dependsOnTaskIds(dependencyIds(task))
+                .status(PlanningStatusMapper.taskToApi(effective))
+                .priority(task.getPriority() != null ? task.getPriority().name() : TaskPriority.MOYENNE.name())
+                .progress(task.getProgressPercent())
+                .description(task.getDescription())
+                .startDate(task.getStartDate())
+                .deadline(task.getEndDate())
+                .endDate(task.getEndDate())
+                .justification(task.getJustification())
+                .delayDays(delayDays)
+                .actualEndDate(task.getActualEndDate())
+                .deliverableUrl(task.getDeliverableUrl())
+                .deliverableLabel(task.getDeliverableLabel())
+                .taskDocuments(docs)
+                .assignee(task.getAssignee() != null ? UserSummaryResponse.builder()
+                        .id(task.getAssignee().getId())
+                        .username(task.getAssignee().getUsername())
+                        .email(task.getAssignee().getEmail())
+                        .role(task.getAssignee().getRole().name())
+                        .build() : null)
+                .build();
     }
 
-    private MilestoneComputed computeMilestone(Milestone milestone) {
-        List<Task> tasks = milestone.getTasks();
-        if (tasks == null || tasks.isEmpty()) {
-            return new MilestoneComputed(0, false);
+    private List<Long> dependencyIds(Task t) {
+        if (t.getDependsOn() != null && !t.getDependsOn().isEmpty()) {
+            return t.getDependsOn().stream().map(Task::getId).sorted().toList();
         }
-        
-        // Manual Progress Rollup (Average of task percentages)
-        double averageProgress = tasks.stream()
-                .mapToInt(Task::getProgressPercent)
-                .average()
-                .orElse(0.0);
-        
-        int progress = (int) Math.round(averageProgress);
-        return new MilestoneComputed(progress, progress == 100);
-    }
-
-    private Long calculateDelay(LocalDate deadline, Object status) {
-        if (deadline == null) return 0L;
-        String statusStr = status.toString();
-        if (statusStr.equals("DONE") || statusStr.equals("TERMINE")) return 0L;
-        
-        if (deadline.isBefore(LocalDate.now())) {
-            return java.time.temporal.ChronoUnit.DAYS.between(deadline, LocalDate.now());
+        if (t.getDependencyTask() != null) {
+            return List.of(t.getDependencyTask().getId());
         }
-        return 0L;
-    }
-
-    private TaskStatus resolveTaskStatus(Task task) {
-        if (task.getStatus() != null) {
-            // Automatic delay check
-            if (task.getStatus() != TaskStatus.DONE && task.getStatus() != TaskStatus.BLOQUE) {
-                if (task.getEndDate() != null && task.getEndDate().isBefore(LocalDate.now())) {
-                    return TaskStatus.EN_RETARD;
-                }
-            }
-            return task.getStatus();
-        }
-        return TaskStatus.NOT_STARTED;
-    }
-
-    private int progressFromStatus(TaskStatus status) {
-        return switch (status) {
-            case DONE -> 100;
-            case NOT_STARTED, IN_PROGRESS, EN_RETARD, BLOQUE -> 0;
-        };
+        return List.of();
     }
 
     private User loadUser(String username) {
@@ -250,6 +426,19 @@ public class PlanningProgressService {
                 .toList();
     }
 
+    private void assertProjectAccessible(Project project, User actor) {
+        if (actor.getRole() == Role.MANAGER || actor.getRole() == Role.ADMINISTRATEUR) {
+            return;
+        }
+        if (project.getChefProjet() != null && actor.getId().equals(project.getChefProjet().getId())) {
+            return;
+        }
+        if (isVisibleToUser(project, actor.getId())) {
+            return;
+        }
+        throw new AppException("FORBIDDEN", "Accès refusé à ce projet", HttpStatus.FORBIDDEN);
+    }
+
     private boolean isVisibleToUser(Project project, Long userId) {
         if (project.getChefProjet() != null && userId.equals(project.getChefProjet().getId())) {
             return true;
@@ -269,7 +458,4 @@ public class PlanningProgressService {
                 && project.getChefProjet().getUsername() != null
                 && project.getChefProjet().getUsername().toLowerCase().contains(queryLower);
     }
-
-    private record MilestoneComputed(int progress, boolean completed) {}
-    private record ProjectComputed(int progress, boolean completed) {}
 }

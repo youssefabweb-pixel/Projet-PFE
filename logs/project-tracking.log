@@ -1,0 +1,59 @@
+[2026-04-26 21:15:42] USER: SYSTEM | ACTION: CREATE | ENTITY: MILESTONE | DETAILS: Jalon 'tete' (id=12) cree dans projet id=13
+[2026-04-26 21:16:52] USER: SYSTEM | ACTION: CREATE | ENTITY: TASK | DETAILS: Tache 'salem' (id=5) creee dans jalon id=12
+[2026-04-26 21:50:18] USER: manager | ACTION: ARCHIVE | ENTITY: PROJECT | DETAILS: Projet 'BBBB' (id=19) archive
+[2026-04-26 21:50:31] USER: manager | ACTION: UNARCHIVE | ENTITY: PROJECT | DETAILS: Projet 'BBBB' (id=19) desarchive
+[2026-04-26 22:08:33] USER: manager | ACTION: ARCHIVE | ENTITY: PROJECT | DETAILS: Projet 'BBBB' (id=19) archivé
+[2026-04-26 23:51:09] USER: manager | ACTION: DELETE | ENTITY: PROJECT | PROJECT_ID: 20 | DETAILS: Projet supprime : DEMDEM [PROJIII]
+[2026-04-27 10:56:03] USER: system | ACTION: COMPLETE | ENTITY: TASK | PROJECT_ID: 8 | DETAILS: Tache complete : tttt | statut=DONE | avancement=100%
+[2026-04-27 15:10:56] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 22 | DETAILS: Projet cree : test moa [PRooj-12]
+[2026-04-27 15:18:43] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 22 | DETAILS: Projet modifie : test moa [PRooj-12]
+[2026-04-27 15:18:44] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 22 | DETAILS: Projet modifie : test moa [PRooj-12]
+[2026-04-27 15:20:53] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 23 | DETAILS: Projet cree : TESTING [PROOJ-test-02]
+[2026-04-27 15:20:56] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 23 | DETAILS: Projet modifie : TESTING [PROOJ-test-02]
+[2026-04-27 15:20:57] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 23 | DETAILS: Projet modifie : TESTING [PROOJ-test-02]
+[2026-04-27 15:20:58] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 23 | DETAILS: Projet modifie : TESTING [PROOJ-test-02]
+[2026-04-27 15:29:55] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet cree : testing-03 [proooj-03]
+[2026-04-27 15:31:17] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet modifie : testing-03 [proooj-03]
+[2026-04-27 15:31:17] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet modifie : testing-03 [proooj-03]
+[2026-04-27 15:31:18] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet modifie : testing-03 [proooj-03]
+[2026-04-27 15:31:19] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet modifie : testing-03 [proooj-03]
+[2026-04-27 15:32:48] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 24 | DETAILS: Jalon cree : TEST tout (id=13)
+[2026-04-27 15:37:35] USER: system | ACTION: CREATE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache creee : testtes test (id=6, jalon=TEST tout)
+[2026-04-27 15:37:43] USER: system | ACTION: COMPLETE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache complete : testtes test | statut=DONE | avancement=100%
+[2026-04-27 15:38:15] USER: system | ACTION: CREATE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache creee : another test (id=7, jalon=TEST tout)
+[2026-04-27 15:38:40] USER: system | ACTION: UPDATE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache update : another test | statut=IN_PROGRESS | avancement=55%
+[2026-04-27 15:38:52] USER: system | ACTION: COMPLETE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache complete : another test | statut=DONE | avancement=100%
+[2026-04-27 15:39:51] USER: manager | ACTION: DELETE | ENTITY: PROJECT | PROJECT_ID: 22 | DETAILS: Projet supprime : test moa [PRooj-12]
+[2026-04-27 15:39:59] USER: manager | ACTION: DELETE | ENTITY: PROJECT | PROJECT_ID: 15 | DETAILS: Projet supprime : tatattatatat [PROOJ-haha]
+[2026-04-27 17:11:54] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 25 | DETAILS: Projet cree : testing [PROOJ-04]
+[2026-04-27 17:11:56] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 25 | DETAILS: Projet modifie : testing [PROOJ-04]
+[2026-04-27 17:12:00] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 25 | DETAILS: Projet modifie : testing [PROOJ-04]
+[2026-04-27 17:12:01] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 25 | DETAILS: Projet modifie : testing [PROOJ-04]
+[2026-04-27 17:12:21] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 25 | DETAILS: Projet modifie : testing [PROOJ-04]
+[2026-04-27 17:18:04] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 25 | DETAILS: Jalon cree : tes123 (id=14)
+[2026-04-28 10:42:59] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 25 | DETAILS: Jalon cree : testttttt (id=15)
+[2026-04-28 11:42:48] USER: manager | ACTION: VALIDATE_PLANNING | ENTITY: PROJECT | PROJECT_ID: 25 | DETAILS: Planning validé par PMO : testing
+[2026-04-28 11:57:30] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 26 | DETAILS: Projet cree : test macro [macro]
+[2026-04-28 11:57:32] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 26 | DETAILS: Projet modifie : test macro [macro]
+[2026-04-28 11:57:33] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 26 | DETAILS: Projet modifie : test macro [macro]
+[2026-04-28 11:57:55] USER: manager | ACTION: DELETE | ENTITY: PROJECT | PROJECT_ID: 25 | DETAILS: Projet supprime : testing [PROOJ-04]
+[2026-04-28 11:57:59] USER: manager | ACTION: DELETE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet supprime : testing-03 [proooj-03]
+[2026-04-28 11:58:02] USER: manager | ACTION: DELETE | ENTITY: PROJECT | PROJECT_ID: 23 | DETAILS: Projet supprime : TESTING [PROOJ-test-02]
+[2026-04-28 11:58:06] USER: manager | ACTION: DELETE | ENTITY: PROJECT | PROJECT_ID: 8 | DETAILS: Projet supprime : ekher test [prroj-434]
+[2026-04-28 11:59:00] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 26 | DETAILS: Jalon cree : test (id=16)
+[2026-04-28 11:59:24] USER: manager | ACTION: VALIDATE_PLANNING | ENTITY: PROJECT | PROJECT_ID: 26 | DETAILS: Planning valid� par PMO : test macro
+[2026-04-28 12:00:29] USER: system | ACTION: CREATE | ENTITY: TASK | PROJECT_ID: 26 | DETAILS: Tache creee : tache uen (id=8, jalon=test)
+[2026-04-28 14:40:38] USER: system | ACTION: CREATE | ENTITY: TASK | PROJECT_ID: 26 | DETAILS: Tache creee : slouma (id=9, jalon=test)
+[2026-04-28 14:40:52] USER: system | ACTION: UPDATE | ENTITY: TASK | PROJECT_ID: 26 | DETAILS: Tache update : slouma | statut=NOT_STARTED | avancement=50%
+[2026-04-29 10:51:43] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 27 | DETAILS: Projet cree : test mant [mant]
+[2026-04-29 10:52:11] USER: system | ACTION: COMPLETE | ENTITY: TASK | PROJECT_ID: 26 | DETAILS: Tache complete : slouma | statut=DONE | avancement=100%
+[2026-04-29 10:52:39] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 27 | DETAILS: Jalon cree : test en cours de validation (id=17)
+[2026-04-29 10:52:45] USER: youssef.aboueb | ACTION: SUBMIT_PLANNING | ENTITY: PROJECT | PROJECT_ID: 27 | DETAILS: Planning soumis pour validation PMO : test mant
+[2026-04-29 11:10:40] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Projet cree : tawa [jdida]
+[2026-04-29 11:10:42] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Projet modifie : tawa [jdida]
+[2026-04-29 11:10:43] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Projet modifie : tawa [jdida]
+[2026-04-29 11:10:53] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 27 | DETAILS: Projet modifie : test mant [mant]
+[2026-04-29 11:10:55] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 27 | DETAILS: Projet modifie : test mant [mant]
+[2026-04-29 11:12:15] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 28 | DETAILS: Jalon cree : jj (id=18)
+[2026-04-29 11:12:32] USER: youssef.aboueb | ACTION: SUBMIT_PLANNING | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Planning soumis pour validation PMO : tawa
+[2026-04-29 11:18:50] USER: manager | ACTION: VALIDATE_PLANNING | ENTITY: PROJECT | PROJECT_ID: 28 | DETAILS: Planning validé par PMO : tawa

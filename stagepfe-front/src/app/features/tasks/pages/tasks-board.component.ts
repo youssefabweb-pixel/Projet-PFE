@@ -3,6 +3,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { take } from 'rxjs/operators';
 import { MilestoneTaskService } from '../../../core/services/milestone-task.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { NotificationCenterService } from '../../../core/notifications/notification-center.service';
@@ -49,9 +50,21 @@ export class TasksBoardComponent implements OnInit {
   loadProjects() {
     this.projectService.getAll().subscribe({
       next: (data) => {
+        const previousId = this.selectedProjectId();
         this.projects.set(data);
-        if (data.length > 0) {
-          // Auto-select first project for demo
+        if (data.length === 0) {
+          this.selectedProjectId.set(null);
+          this.milestones.set([]);
+          this.resetPlanningDraft(null);
+          return;
+        }
+        const keep =
+          previousId != null && data.some((p) => p.id === previousId);
+        if (keep) {
+          this.selectedProjectId.set(previousId);
+          const p = data.find((it) => it.id === previousId) ?? null;
+          this.resetPlanningDraft(p);
+        } else {
           this.onProjectChange(data[0].id);
         }
       },
@@ -70,7 +83,8 @@ export class TasksBoardComponent implements OnInit {
     this.loading.set(true);
     this.milestoneTaskService.getMilestones(projectId).subscribe({
       next: (data) => {
-        this.milestones.set(data);
+        const unique = this.dedupeMilestonesById(data);
+        this.milestones.set(unique);
         this.loading.set(false);
       },
       error: (err) => {
@@ -216,7 +230,7 @@ export class TasksBoardComponent implements OnInit {
       }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().pipe(take(1)).subscribe((result) => {
       if (!result) return;
       
       const obs = milestone 
@@ -229,7 +243,7 @@ export class TasksBoardComponent implements OnInit {
           this.notify.success(milestone ? 'Jalon mis à jour' : 'Jalon créé');
           this.loadProjects();
         },
-        error: (err) => this.notify.error(err.message || "Échec de l'opération")
+        error: (err) => this.notify.error(err.message || "Échec de l'opération"),
       });
     });
   }
@@ -258,7 +272,7 @@ export class TasksBoardComponent implements OnInit {
       }
     });
 
-    dialogRef.afterClosed().subscribe(result => {
+    dialogRef.afterClosed().pipe(take(1)).subscribe((result) => {
       if (!result) return;
 
       const obs = task
@@ -300,5 +314,18 @@ export class TasksBoardComponent implements OnInit {
       plannedStartDate: project.plannedStartDate,
       plannedEndDate: project.plannedEndDate,
     });
+  }
+
+  /** Garde l’ordre API mais supprime les doublons d’id (sécurité si réponses fusionnées / requêtes concurrentes). */
+  private dedupeMilestonesById(milestones: Milestone[]): Milestone[] {
+    const seen = new Set<number>();
+    const out: Milestone[] = [];
+    for (const m of milestones) {
+      if (m?.id != null && !seen.has(m.id)) {
+        seen.add(m.id);
+        out.push(m);
+      }
+    }
+    return out;
   }
 }

@@ -5,10 +5,16 @@
         <h1>Planification & Avancement</h1>
         <p class="text-muted">Suivi détaillé de la progression des projets, jalons et tâches.</p>
       </div>
-      <button mat-stroked-button class="back-projects-btn" (click)="goBackToProjects()">
-        <span class="ui-glyph" aria-hidden="true">←</span>
-        Retour aux fiches projets
-      </button>
+      <div class="header-actions">
+        <button mat-stroked-button class="back-projects-btn" (click)="goBackToProjects()">
+          <span class="ui-glyph" aria-hidden="true">←</span>
+          Retour aux fiches projets
+        </button>
+        <button mat-stroked-button class="history-btn" *ngIf="isManagerOrAdmin()" (click)="openHistory()" matTooltip="Historique des actions">
+          <span class="ui-glyph" aria-hidden="true">🕑</span>
+          Historique
+        </button>
+      </div>
     </div>
   </header>
 
@@ -57,9 +63,13 @@
       <p class="kpi-label">Tâches en retard</p>
       <strong class="kpi-value kpi-risk">{{ dashboardStats().delayedTasks }}</strong>
     </article>
-    <article class="kpi-card wb-card">
-      <p class="kpi-label">Tâches bloquées</p>
-      <strong class="kpi-value kpi-blocked">{{ dashboardStats().blockedTasks }}</strong>
+    <article
+      class="kpi-card wb-card kpi-card--filter"
+      [class.kpi-card--active]="pendingValidationOnly()"
+      (click)="togglePendingValidationFilter()"
+    >
+      <p class="kpi-label">En attente de validation</p>
+      <strong class="kpi-value kpi-pending">{{ dashboardStats().pendingValidation }}</strong>
     </article>
     <article class="kpi-card wb-card">
       <p class="kpi-label">Avancement moyen</p>
@@ -80,7 +90,9 @@
   } @else {
     <div class="projects-grid">
       @for (project of filteredProjects(); track project.id) {
-        <article class="project-card wb-card" [class.project-card--completed]="project.completed">
+        <article class="project-card wb-card"
+          [class.project-card--completed]="project.completed"
+          [class.project-card--soumis]="isPlanningSubmitted(project) && !isManagerOrAdmin()">
           <div class="project-card__header">
             <div class="project-info">
               <div class="project-info__top">
@@ -108,6 +120,43 @@
               </div>
             </div>
             
+            <!-- Planning status banners -->
+            <div class="planning-banner planning-banner--draft" *ngIf="isPlanningDraft(project) && isEditor(project) && !isManagerOrAdmin()">
+              <span class="ui-glyph" aria-hidden="true">✏️</span>
+              <div class="banner-text">
+                <strong>Étape 1 — Définir le macro-planning</strong>
+                <span>Créez vos jalons, puis cliquez "Terminer la planification" pour soumettre au PMO. Les tâches se débloquent après validation.</span>
+              </div>
+            </div>
+
+            <!-- Bandeau SOUMIS : message différent selon le rôle -->
+            <ng-container *ngIf="isPlanningSubmitted(project)">
+              <!-- Message pour le Chef de projet -->
+              <div class="planning-banner planning-banner--soumis" *ngIf="!isManagerOrAdmin()">
+                <span class="ui-glyph" aria-hidden="true">⏳</span>
+                <div class="banner-text">
+                  <strong>En attente de validation PMO</strong>
+                  <span>Vous pouvez ajouter/terminer les tâches, mais les dates des jalons restent figées.</span>
+                </div>
+              </div>
+              <!-- Message pour le PMO / Admin -->
+              <div class="planning-banner planning-banner--pmo-review" *ngIf="isManagerOrAdmin()">
+                <span class="ui-glyph" aria-hidden="true">🔍</span>
+                <div class="banner-text">
+                  <strong>En attente de votre validation</strong>
+                  <span>Vérifiez les jalons ci-dessous et cliquez sur "Valider le planning" si le macro-planning est conforme.</span>
+                </div>
+              </div>
+            </ng-container>
+
+            <div class="planning-banner planning-banner--valide" *ngIf="project.macroPlanning === 'VALIDE'">
+              <span class="ui-glyph" aria-hidden="true">✅</span>
+              <div class="banner-text">
+                <strong>Étape 2 — Planning validé par le PMO</strong>
+                <span>Dates des jalons figées — ajoutez maintenant les tâches dans chaque jalon</span>
+              </div>
+            </div>
+
             <div class="project-visuals">
               <div class="project-progress-circle" [matTooltip]="project.progress + '% de progression totale'">
                 <div class="progress-ring">
@@ -120,9 +169,42 @@
                   <span class="progress-val">{{ project.progress }}%</span>
                 </div>
               </div>
-              <div class="project-actions" *ngIf="isEditor(project)">
-                <button mat-flat-button color="primary" (click)="$event.stopPropagation(); addMilestone(project)">
-                  Ajouter un jalon
+              <div class="project-actions">
+                <!-- Ajouter un jalon : uniquement en DRAFT -->
+                <button
+                  *ngIf="isEditor(project) && isPlanningDraft(project)"
+                  mat-flat-button
+                  color="primary"
+                  (click)="$event.stopPropagation(); addMilestone(project)"
+                  matTooltip="Ajouter un jalon au macro-planning"
+                >
+                  + Ajouter un jalon
+                </button>
+
+                <!-- Terminer la planification : chef de projet en DRAFT avec au moins 1 jalon -->
+                <button
+                  *ngIf="canSubmitPlanning(project)"
+                  mat-flat-button
+                  class="btn-submit-planning"
+                  [disabled]="submittingPlanningId() === project.id"
+                  (click)="$event.stopPropagation(); submitPlanning(project)"
+                  matTooltip="Soumettre la planification au PMO pour validation"
+                >
+                  <span *ngIf="submittingPlanningId() !== project.id">Terminer la planification</span>
+                  <span *ngIf="submittingPlanningId() === project.id">Soumission...</span>
+                </button>
+
+                <!-- Valider le planning : PMO dès que des jalons existent et pas encore validé -->
+                <button
+                  *ngIf="canValidatePlanning(project)"
+                  mat-flat-button
+                  class="btn-validate-planning"
+                  [disabled]="validatingPlanningId() === project.id"
+                  (click)="$event.stopPropagation(); validatePlanning(project)"
+                  [matTooltip]="isPlanningSubmitted(project) ? 'Valider le planning soumis par le chef de projet' : 'Valider les jalons — les dates seront figées et les tâches débloquées'"
+                >
+                  <span *ngIf="validatingPlanningId() !== project.id">✔ Valider le planning</span>
+                  <span *ngIf="validatingPlanningId() === project.id">Validation...</span>
                 </button>
               </div>
             </div>
@@ -135,10 +217,12 @@
                   <mat-expansion-panel-header>
                     <mat-panel-title>
                       <span class="milestone-marker" [class.milestone-marker--done]="milestone.completed">{{ milestone.completed ? 'Terminé' : 'Jalon' }}</span>
-                      {{ milestone.name }}
+                      <span class="milestone-pending-badge" *ngIf="isPlanningSubmitted(project)">En attente validation</span>
+                      <span class="milestone-title-text">{{ milestone.name }}</span>
                     </mat-panel-title>
                     <mat-panel-description>
                       <div class="milestone-meta">
+                        <span class="milestone-status-chip" [attr.data-ms]="milestone.status">{{ milestoneStatusLabel(milestone.status) }}</span>
                         <span class="deadline" [title]="'Échéance: ' + (milestone.deadline | date)">
                           {{ milestone.deadline | date:'dd/MM' }}
                         </span>
@@ -146,11 +230,18 @@
                           <div class="fill" [class]="progressColorClass(milestone.progress)" [style.width.%]="milestone.progress"></div>
                         </div>
                         <span class="percent">{{ milestone.progress }}%</span>
-                        <div class="milestone-actions" *ngIf="isEditor(project)">
-                          <button mat-stroked-button class="action-btn action-btn--edit" [disabled]="isMilestoneLocked(project, i)" [matTooltip]="isMilestoneLocked(project, i) ? milestoneLockReason(project, i) : 'Modifier'" (click)="$event.stopPropagation(); editMilestone(project, milestone)">
+                        <div class="milestone-actions" *ngIf="canEditMilestone(project)">
+                          <button mat-stroked-button class="action-btn action-btn--edit"
+                            [disabled]="isMilestoneLocked(project, i)"
+                            [matTooltip]="isMilestoneLocked(project, i) ? milestoneLockReason(project, i) : (areMilestoneDatesLocked(project) ? 'Modifier (dates figées)' : 'Modifier')"
+                            (click)="$event.stopPropagation(); editMilestone(project, milestone)">
                             Modifier
                           </button>
-                          <button mat-stroked-button class="action-btn action-btn--delete" [disabled]="isMilestoneLocked(project, i)" [matTooltip]="isMilestoneLocked(project, i) ? milestoneLockReason(project, i) : 'Supprimer'" (click)="$event.stopPropagation(); deleteMilestone(milestone)">
+                          <button mat-stroked-button class="action-btn action-btn--delete"
+                            *ngIf="canManageMilestoneStructure(project)"
+                            [disabled]="isMilestoneLocked(project, i)"
+                            [matTooltip]="isMilestoneLocked(project, i) ? milestoneLockReason(project, i) : 'Supprimer'"
+                            (click)="$event.stopPropagation(); deleteMilestone(milestone)">
                             Supprimer
                           </button>
                         </div>
@@ -160,7 +251,13 @@
 
                   <div class="tasks-checklist">
                     @for (task of milestone.tasks; track task.id) {
-                      <div class="task-row" [class.task-row--done]="task.status === 'DONE'" [attr.data-task-status]="task.status">
+                      <!-- Tâche visible si PMO (lecture seule) OU si l'éditeur peut gérer -->
+                      <div
+                        *ngIf="canViewTasks(project)"
+                        class="task-row"
+                        [class.task-row--done]="task.status === 'COMPLETED'"
+                        [class.task-row--delayed]="isTaskDelayed(task)"
+                        [attr.data-task-status]="task.status">
                         <div class="task-left">
                           <div class="task-main-info">
                             <span class="task-title">{{ task.name }}</span>
@@ -170,13 +267,45 @@
                                 Retard : {{ task.delayDays }}j
                               </span>
                             </div>
+                            <div class="task-deps" *ngIf="dependencyNames(milestone, task).length">
+                              <span class="task-deps__label">Dépend de :</span>
+                              @for (dn of dependencyNames(milestone, task); track dn) {
+                                <span class="task-deps__chip">{{ dn }}</span>
+                              }
+                            </div>
+                            <div class="task-deliverable" *ngIf="task.deliverableUrl || task.deliverableLabel || (task.taskDocuments && task.taskDocuments.length > 0)">
+                              <a *ngIf="task.deliverableUrl" [href]="task.deliverableUrl" target="_blank" rel="noopener" class="deliverable-link" (click)="$event.stopPropagation()">
+                                <span class="ui-glyph">🔗</span>{{ task.deliverableLabel || 'Lien livrable' }}
+                              </a>
+                              <span *ngIf="!task.deliverableUrl && task.deliverableLabel" class="deliverable-text">{{ task.deliverableLabel }}</span>
+                              <div class="task-files" *ngIf="task.taskDocuments && task.taskDocuments.length > 0">
+                                <a *ngFor="let doc of task.taskDocuments"
+                                   [href]="taskDocumentService.downloadUrl(doc)"
+                                   target="_blank" rel="noopener"
+                                   class="task-file-chip"
+                                   [matTooltip]="taskDocumentService.formatSize(doc.size)"
+                                   (click)="$event.stopPropagation()">
+                                  <span class="ui-glyph" *ngIf="taskDocumentService.isImage(doc)">🖼</span>
+                                  <span class="ui-glyph" *ngIf="!taskDocumentService.isImage(doc)">📎</span>
+                                  {{ doc.filename }}
+                                </a>
+                              </div>
+                            </div>
                           </div>
-                          <div class="task-progress-control" *ngIf="isEditor(project)">
+                          <!-- Barre de progression : uniquement pour l'éditeur (pas PMO) -->
+                          <div class="task-progress-control" *ngIf="canManageTasks(project)">
                              <div class="progress-info">
                                <span class="progress-val">{{ task.progress }}%</span>
                                <input type="range" [value]="task.progress" min="0" max="100" step="5" (click)="$event.stopPropagation()"
                                       (change)="onTaskProgressQuickChange(task, $event)">
                              </div>
+                          </div>
+                          <!-- Avancement en lecture seule pour PMO -->
+                          <div class="task-progress-readonly" *ngIf="isManagerOrAdmin() && !canManageTasks(project)">
+                            <span class="progress-val-readonly">{{ task.progress }}%</span>
+                            <div class="progress-bar-readonly">
+                              <div class="progress-bar-readonly__fill" [style.width.%]="task.progress"></div>
+                            </div>
                           </div>
                         </div>
 
@@ -189,14 +318,21 @@
                               Assigné à : {{ task.assignee.username }}
                             </span>
                           </div>
-                          <div class="task-actions" *ngIf="isEditor(project)">
-                            <button mat-stroked-button class="action-btn action-btn--edit" matTooltip="Modifier" (click)="editTask(project, task)">
+                          <!-- Actions uniquement pour l'éditeur (jamais pour PMO) -->
+                          <div class="task-actions" *ngIf="canManageTasks(project)">
+                            <button mat-stroked-button class="action-btn" *ngIf="task.status === 'DELAYED' || task.status === 'BLOCKED'"
+                                    matTooltip="Justification retard / blocage" (click)="openTaskJustification(task)">
+                              Justifier
+                            </button>
+                            <button mat-stroked-button class="action-btn action-btn--edit" matTooltip="Modifier" (click)="editTask(project, milestone, task)">
                               Modifier
                             </button>
                             <button mat-stroked-button class="action-btn action-btn--delete" matTooltip="Supprimer" (click)="deleteTask(task)">
                               Supprimer
                             </button>
                           </div>
+                          <!-- Badge lecture seule pour PMO -->
+                          <span class="task-readonly-badge" *ngIf="isManagerOrAdmin()">Lecture seule</span>
                         </div>
 
                         <div class="task-justification" *ngIf="task.justification">
@@ -204,12 +340,24 @@
                         </div>
                       </div>
                     } @empty {
-                      <p class="empty-tasks">Aucune tâche planifiée pour ce jalon.</p>
+                      <!-- Aucune tâche : message adapté selon le rôle -->
+                      <p class="empty-tasks" *ngIf="canManageTasks(project)">Aucune tâche planifiée pour ce jalon.</p>
+                      <p class="empty-tasks" *ngIf="isManagerOrAdmin()">Aucune tâche planifiée pour ce jalon.</p>
+                      <p class="empty-tasks empty-tasks--locked" *ngIf="!canViewTasks(project)">
+                        <span class="ui-glyph" aria-hidden="true">🔒</span>
+                        Les tâches seront disponibles après soumission du planning au PMO.
+                      </p>
                     }
 
-                    <div class="add-task-row" *ngIf="isEditor(project)">
-                      <button mat-button color="primary" [disabled]="isMilestoneLocked(project, i)" [matTooltip]="isMilestoneLocked(project, i) ? milestoneLockReason(project, i) : 'Ajouter une tâche'" (click)="addTask(project, milestone.id)">
-                        Ajouter une tâche
+                    <div class="add-task-row" *ngIf="canManageTasks(project)">
+                      <button mat-button color="primary"
+                        [disabled]="isMilestoneLocked(project, i)"
+                        [matTooltip]="isMilestoneLocked(project, i) ? milestoneLockReason(project, i) : 'Ajouter une tâche'"
+                        (click)="addTask(project, milestone)">
+                        + Ajouter une tâche
+                      </button>
+                      <button mat-button *ngIf="milestone.status === 'DELAYED' || milestone.status === 'BLOCKED'" type="button" (click)="openMilestoneJustification(milestone)">
+                        Justifier le jalon
                       </button>
                     </div>
                   </div>
@@ -218,7 +366,13 @@
                 <div class="empty-milestones-cta">
                   <mat-icon>insights</mat-icon>
                   <p>Commencez la planification en ajoutant votre premier jalon.</p>
-                  <button mat-stroked-button color="primary" (click)="addMilestone(project)" *ngIf="isEditor(project)">
+                  <button
+                    mat-stroked-button
+                    color="primary"
+                    *ngIf="isEditor(project) && isPlanningDraft(project)"
+                    (click)="addMilestone(project)"
+                    matTooltip="Créer le premier jalon"
+                  >
                     <mat-icon>add</mat-icon>
                     Créer le premier jalon
                   </button>

@@ -1,0 +1,12 @@
+[2026-04-27 15:29:55] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet cree : testing-03 [proooj-03]
+[2026-04-27 15:31:17] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet modifie : testing-03 [proooj-03]
+[2026-04-27 15:31:17] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet modifie : testing-03 [proooj-03]
+[2026-04-27 15:31:18] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet modifie : testing-03 [proooj-03]
+[2026-04-27 15:31:19] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet modifie : testing-03 [proooj-03]
+[2026-04-27 15:32:48] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 24 | DETAILS: Jalon cree : TEST tout (id=13)
+[2026-04-27 15:37:35] USER: system | ACTION: CREATE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache creee : testtes test (id=6, jalon=TEST tout)
+[2026-04-27 15:37:43] USER: system | ACTION: COMPLETE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache complete : testtes test | statut=DONE | avancement=100%
+[2026-04-27 15:38:15] USER: system | ACTION: CREATE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache creee : another test (id=7, jalon=TEST tout)
+[2026-04-27 15:38:40] USER: system | ACTION: UPDATE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache update : another test | statut=IN_PROGRESS | avancement=55%
+[2026-04-27 15:38:52] USER: system | ACTION: COMPLETE | ENTITY: TASK | PROJECT_ID: 24 | DETAILS: Tache complete : another test | statut=DONE | avancement=100%
+[2026-04-28 11:57:59] USER: manager | ACTION: DELETE | ENTITY: PROJECT | PROJECT_ID: 24 | DETAILS: Projet supprime : testing-03 [proooj-03]

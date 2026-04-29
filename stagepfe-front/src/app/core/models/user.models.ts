@@ -11,6 +11,7 @@ export interface User {
   updatedAt: string;
   lastLoginAt: string | null;
   createdByManagerId: number | null;
+  createdByManagerUsername: string | null;
 }
 
 export interface CreateUserPayload {

@@ -1,0 +1,3 @@
+[2026-04-26 21:50:18] USER: manager | ACTION: ARCHIVE | ENTITY: PROJECT | DETAILS: Projet 'BBBB' (id=19) archive
+[2026-04-26 21:50:31] USER: manager | ACTION: UNARCHIVE | ENTITY: PROJECT | DETAILS: Projet 'BBBB' (id=19) desarchive
+[2026-04-26 22:08:33] USER: manager | ACTION: ARCHIVE | ENTITY: PROJECT | DETAILS: Projet archivé

@@ -42,7 +42,7 @@ public class MilestoneTaskController {
     }
 
     @DeleteMapping("/milestones/{id}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMINISTRATEUR')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMINISTRATEUR', 'DEVELOPPEMENT', 'MOA', 'METIER')")
     public ResponseEntity<Void> deleteMilestone(@PathVariable Long id) {
         service.deleteMilestone(id);
         return ResponseEntity.noContent().build();

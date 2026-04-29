@@ -1,6 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 
 /**
  * Raccourcis globaux (évite de capturer si l’utilisateur est dans un input sauf Ctrl+K).
@@ -11,6 +12,7 @@ import { Router } from '@angular/router';
 export class KeyboardShortcutsService {
   private readonly router = inject(Router);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly auth = inject(AuthService);
 
   /** Incrémenté pour que UsersListPage focus la barre de recherche */
   readonly usersSearchFocusTick = signal(0);
@@ -29,12 +31,18 @@ export class KeyboardShortcutsService {
         tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable === true;
 
       if (ev.ctrlKey && ev.key.toLowerCase() === 'k') {
+        if (this.auth.getRole() !== 'ADMINISTRATEUR') {
+          return;
+        }
         ev.preventDefault();
         this.usersSearchFocusTick.update((n) => n + 1);
         return;
       }
 
       if (ev.ctrlKey && ev.shiftKey && ev.key.toLowerCase() === 'n') {
+        if (this.auth.getRole() !== 'ADMINISTRATEUR') {
+          return;
+        }
         ev.preventDefault();
         void this.router.navigate(['/users']);
         this.openUserCreateTick.update((n) => n + 1);

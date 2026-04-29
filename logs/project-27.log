@@ -1,0 +1,5 @@
+[2026-04-29 10:51:43] USER: manager | ACTION: CREATE | ENTITY: PROJECT | PROJECT_ID: 27 | DETAILS: Projet cree : test mant [mant]
+[2026-04-29 10:52:39] USER: system | ACTION: CREATE | ENTITY: MILESTONE | PROJECT_ID: 27 | DETAILS: Jalon cree : test en cours de validation (id=17)
+[2026-04-29 10:52:45] USER: youssef.aboueb | ACTION: SUBMIT_PLANNING | ENTITY: PROJECT | PROJECT_ID: 27 | DETAILS: Planning soumis pour validation PMO : test mant
+[2026-04-29 11:10:53] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 27 | DETAILS: Projet modifie : test mant [mant]
+[2026-04-29 11:10:55] USER: manager | ACTION: UPDATE | ENTITY: PROJECT | PROJECT_ID: 27 | DETAILS: Projet modifie : test mant [mant]

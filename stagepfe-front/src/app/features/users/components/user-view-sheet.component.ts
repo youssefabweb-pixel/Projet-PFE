@@ -45,7 +45,7 @@ import { getHttpErrorMessage } from '../../../shared/utils/http-error.util';
             <div><dt>E-mail</dt><dd>{{ u.email }}</dd></div>
             <div>
               <dt>Rôle</dt>
-              <dd><span class="badge" [ngClass]="roleBadgeClass(u.role)">{{ u.role }}</span></dd>
+              <dd><span class="badge" [ngClass]="roleBadgeClass(u.role)">{{ displayRole(u.role) }}</span></dd>
             </div>
             <div>
               <dt>Statut</dt>
@@ -58,7 +58,6 @@ import { getHttpErrorMessage } from '../../../shared/utils/http-error.util';
             <div><dt>Créé le</dt><dd>{{ u.createdAt | date : 'short' }}</dd></div>
             <div><dt>Modifié le</dt><dd>{{ u.updatedAt | date : 'short' }}</dd></div>
             <div><dt>Dernière connexion</dt><dd>{{ u.lastLoginAt ? (u.lastLoginAt | date : 'short') : '—' }}</dd></div>
-            <div><dt>Créé par (manager)</dt><dd>{{ u.createdByManagerId ?? '—' }}</dd></div>
           </dl>
         </div>
 
@@ -265,6 +264,10 @@ export class UserViewSheetComponent {
     ];
     const key = known.includes(slug) ? slug : 'default';
     return 'role--' + key;
+  }
+
+  protected displayRole(role: string): string {
+    return role.toUpperCase() === 'MANAGER' ? 'PMO' : role;
   }
 
   @HostListener('document:keydown.escape')
